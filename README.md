@@ -3,7 +3,7 @@ Density based object completion over PBC. This repository eventually will be mer
 
 
 ## Usage
-install the dependencies at the top of whole.py using pip.
+Install the dependencies at the top of whole.py using pip.
 
 Making a single gro whole:
 
