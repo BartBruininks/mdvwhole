@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
-
-
-import sys
 import argparse
+import scipy.ndimage
 import numpy as np
 import mdvoxelsegmentation as mdvseg
 import MDAnalysis as mda
@@ -13,18 +10,13 @@ import networkx as nx
 from time import time
 from numba import jit
 
+
 # Visualization
 import open3d as o3d
 from pyvis import network as pvnet
-import scipy.ndimage
-import matplotlib.pyplot as plt
-from IPython.display import Image
 
 # Benchmarking
 #%load_ext line_profiler
-
-
-# In[ ]:
 
 
 def make_pcd(atomgroup, color=np.random.random()):
@@ -37,18 +29,12 @@ def make_pcd(atomgroup, color=np.random.random()):
     return pcd
 
 
-# In[ ]:
-
-
 def draw_atomgroup(atomgroup, color=np.random.random(3)):
     """
     Draws an atomgroup as a pointcloud using o3d.
     """
     pcd = make_pcd(atomgroup, color)
     vis = o3d.visualization.draw_geometries([pcd])
-
-
-# In[ ]:
 
 
 def draw_grid(grid):
@@ -74,9 +60,6 @@ def draw_grid(grid):
     o3d.visualization.draw_geometries(pcds)
 
 
-# In[ ]:
-
-
 @jit(nopython=True)
 def find_neighbor_indexes(target_indexes, labels, neighbor_mask):
     """
@@ -88,9 +71,6 @@ def find_neighbor_indexes(target_indexes, labels, neighbor_mask):
     neighbor_indexes += neighbor_mask
     neighbor_dim_shifts, neighbor_indexes = np.divmod(neighbor_indexes, np.array(labels.shape))
     return neighbor_indexes, neighbor_dim_shifts
-
-
-# In[ ]:
 
 
 @jit(nopython=True)
@@ -112,9 +92,6 @@ def find_bridges(target_indexes, labels, neighbor_mask):
                     bridge_shifts[counter] = dim_shifts[idxx, idxy, idxz]
                     counter += 1
     return target_label, bridges, bridge_shifts
-
-
-# In[ ]:
 
 
 @jit(nopython=True)
@@ -139,9 +116,6 @@ def find_all_bridges(labels, neighbor_mask):
     return all_target_labels, all_pairs, all_pair_shifts
 
 
-# In[ ]:
-
-
 def create_edge_voxel_array(labels):
     """
     Returns all edge voxels (this could be cheaper but I do not care for now).
@@ -151,9 +125,6 @@ def create_edge_voxel_array(labels):
     edge_mask[:, -1, :] = 1
     edge_mask[:, :, -1] = 1
     return np.array(np.where(edge_mask == 1), dtype='int32').T
-
-
-# In[ ]:
 
 
 @jit(nopython=True)
@@ -174,9 +145,6 @@ def find_all_bridges_from_array(query_array, labels, neighbor_mask):
     return all_target_labels, all_bridges, all_bridge_shifts
 
 
-# In[ ]:
-
-
 @jit(nopython=True)
 def create_graph_input_single(label, bridges, dim_shifts):
     """
@@ -195,10 +163,6 @@ def create_graph_input_single(label, bridges, dim_shifts):
         return None
 
 
-# In[ ]:
-
-
-#@jit(nopython=True)
 def filter_largest_bridges(graph_input):
     """
     Creates a sorted array to generate the graph from the connectivity for all voxels.
@@ -219,9 +183,6 @@ def filter_largest_bridges(graph_input):
     # Use the minus sign to invert the search to descending.
     sorted_graph_input = sorted_graph_input[np.argsort(-sorted_graph_input[:, 5])]
     return sorted_graph_input
-
-
-# In[ ]:
 
 
 def create_graph_input_all(labels, bridges, dim_shifts):
@@ -246,15 +207,6 @@ def create_graph_input_all(labels, bridges, dim_shifts):
     out[:, 5] = temp_out[1]
     out = filter_largest_bridges(out)
     return out
-
-
-# # Voxelize the selection density
-# Probably a useful default is to select all non water molecules.
-# 
-# # Segment the density without PBC
-# I think I should move to scipy.ndimage.label. It is well supported and the PBC is not needed here, nor is the stop segmentation option in the mdvseg library. We want a label per atom, therefore we need to go back from voxels to molecules.
-
-# In[ ]:
 
 
 class Voxels():
@@ -378,7 +330,7 @@ class Voxels():
         neighbormask of 26 neighbors.
         """
         if not hasattr(self, 'labels'):
-            print(f'The default 26 neighbormask has been used for labeling.\n'
+            print('The default 26 neighbormask has been used for labeling.\n'
                   'Running Voxel.label() allows for specification of a custom\n'
                   'neighbormask.\n')
             self.label()
@@ -472,13 +424,6 @@ class Voxels():
         self.__checkNset_labels()   
         draw_grid(self.labels)
     
-
-
-# # Find all bridges between PBC
-# A bridge is a connecton that would have been formed between two segments if th PBC had been periodic. The result is an object which contains all bridges and their associated cost. The cost will be added to positions written after passing the bridge. For example, if a bridge crosses the -x boundary of the PBC, any coordinate written after passing that bridge will have 1x the x dimension subtracted from its coordinates. All queries will always take place in the original box. Therefore no duplicates will be needed! We only need one times the search distance (1 voxel) as en extra rim around the PBX for checking for bridges. Bridges to selve are not included. Also when a label has been added by a bridge, it is no longer added any longer. Therefore the resulting graph is a DAG.
-
-# In[ ]:
-
 
 class Bridges():
     def __init__(self, labels, neighbor_mask):
@@ -579,21 +524,6 @@ class Bridges():
         return net.show(name)
 
 
-# # Find the most central label for each tree of bridges
-# Bridge paths can be split, as not all labels need to be connected (even when taking the PBC bridges into account). Separate bridge paths indicate separate objects (true labels). 
-
-# # Create the Whole class
-# The Whole class has the following options:
-# 
-# 1. Specify the central first chunk.
-# 2. Dictionary with bridges and their cost.
-# 3. A list of trees containing the path to every label starting from the central label for that tree.
-# 4. A method to rewrite the postions of each tree taking into account the bridge costs. This can be done by starting from the central label for a bridge path and then travel over all connected bridges and writing the positions of the new label after crossing the bridge, altered by the sum of bridge costs thus far. This is performed for each bridge path independently.
-# 5. Relabel the individual labels with there tree id. This makes the labels whole i.e. objects.
-
-# In[3]:
-
-
 class Whole():
     def __init__(self, atomgroup, resolution=1, hyperres=False, 
                  neighbor_mask=np.ones((3,3,3))):
@@ -658,7 +588,6 @@ class Whole():
         """
         path = self.all_paths[sub_graph_id][label]
         counter = 0
-        bridge = (counter, counter+1)
         path_sum = np.zeros(3)
         while counter < len(path)-1:
                 # Take the first edge in the dict. MultiGraph allows for multiple 
@@ -706,11 +635,6 @@ class Whole():
         self.voxels.atomgroup.write(name)
 
 
-# # Test functions
-
-# In[ ]:
-
-
 def test(gro, xtc, frame, selection='not resname W WF ION', resolution=1, name='whole.gro'):
     # Load the universe.
     u = mda.Universe(gro, xtc)
@@ -746,9 +670,6 @@ def test(gro, xtc, frame, selection='not resname W WF ION', resolution=1, name='
     #  are filled with PBC!!! We should be able to turn this off...
     
     return graph
-
-
-# In[2]:
 
 
 class MDAWhole():
@@ -802,11 +723,6 @@ class MDAWhole():
         return atomgroup
 
 
-# # Single frame tests
-
-# In[ ]:
-
-
 def test(gro, xtc, frame, selection='not resname W WF ION', resolution=1, name='whole.gro'):
     # Load the universe.
     u = mda.Universe(gro, xtc)
@@ -844,9 +760,6 @@ def test(gro, xtc, frame, selection='not resname W WF ION', resolution=1, name='
     return graph
 
 
-# In[ ]:
-
-
 def whole_traj(atomgroup, resolution=1, out='whole.xtc'):
     """
     Makes every frame whole and write the xtc and returns the whole atomgroup.
@@ -875,81 +788,6 @@ def whole_traj(atomgroup, resolution=1, out='whole.xtc'):
             W.write(whole.voxels.atomgroup)     
     print(f'\rDone, the whole thing took {(time()-start_time)/60:.2f} minutes.              ')
     return atomgroup
-
-
-# ## Membrane ribbon
-# Running the script the first time will take longer, since the numba functions have to be compiled. However, the second time shows the 'precompiled' speed. Since we want to do this as a transformation on every frame of a trajectory, the initial 3-4 seconds compile time are more than worth it.
-
-# In[ ]:
-
-
-#test('tests/membrane_ribbon/noW.gro', 'tests/membrane_ribbon/noW.xtc', 200, resolution=1,
-#    name='tests/membrane_ribbon/whole.gro')
-
-
-# In[ ]:
-
-
-#test('tests/membrane_ribbon/noW.gro', 'tests/membrane_ribbon/noW.xtc', 200, resolution=1,
-#    name='tests/membrane_ribbon/whole.gro')
-
-
-# ## Acyl chains
-
-# In[ ]:
-
-
-#test('tests/bicelles/split.gro', 'tests/bicelles/split.gro', 0, resolution=1,
-#    name='tests/bicelles/whole.gro')
-
-
-# ## Lipoplex transfection
-
-# In[ ]:
-
-
-#test('tests/transfection/split.gro', 'tests/transfection/split.gro', 0, resolution=1,
-#    name='tests/transfection/whole.gro')
-
-
-# # Using Whole for random frames and trajectories
-
-# In[ ]:
-
-
-## Loading trajectory.
-#u = mda.Universe('tests/membrane_ribbon/eq.gro', 'tests/membrane_ribbon/md.xtc', in_memory=False)
-#atomgroup = u.select_atoms('not resname W WF ION')
-## Add the transformation to the universe.
-#u.trajectory.add_transformations(MDAWhole(atomgroup))
-## Set active frame.
-#u.trajectory[200]
-## Show that the atomgroup is indeed whole.
-#draw_atomgroup(atomgroup)
-
-
-# In[ ]:
-
-
-# Loading trajectory.
-#u = mda.Universe('tests/membrane_ribbon/eq.gro', 'tests/membrane_ribbon/md.xtc', in_memory=False)
-# THIS IS NOT
-#test = u.select_atoms('not resname W WF ION')
-# Make the complete trajectory whole and write it.
-#MDAWhole.whole_traj(test, 'test.xtc')
-
-# THIS IS WORKING
-#atomgroup = u.select_atoms('not resname W WF ION')
-# Make the complete trajectory whole and write it.
-#MDAWhole.whole_traj(atomgroup, 'test.xtc')
-
-# It seems we are in some way dependent on the global variable
-#  atomgroup, this is unwanted behavior and I need to find out
-#  how to fix this. This is also the reason for the errors 
-#  generated below.
-
-
-# In[ ]:
 
 
 def read_arguments():
@@ -996,9 +834,6 @@ def read_arguments():
     return args
 
 
-# In[ ]:
-
-
 def main():
     """
     Makes the trajectory whole and writes it.
@@ -1012,23 +847,8 @@ def main():
     MDAWhole.whole_traj(atomgroup, out=args.out_file, resolution=args.resolution)
 
 
-# In[ ]:
-
-
 if __name__ == "__main__":
     main()
-
-
-# In[ ]:
-
-
-#gro = 'tests/membrane_ribbon/eq.gro'
-#xtc = gro
-#selection = 'not resname W WF ION'
-#u = mda.Universe(gro, xtc, in_memory=False)
-#atomgroup = u.select_atoms(selection)
-#whole = Whole(atomgroup)
-#%lprun -f mdvseg.clustering.gen_explicit_matrix Whole(atomgroup)
 
 
 # # Performance
