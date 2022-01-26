@@ -987,6 +987,10 @@ def read_arguments():
         '-o', '--out_file', nargs='?', default='whole.xtc', type=str,
         help='the path for writing the whole (e.g. XTC, GRO) (default=whole.xtc)',
         )
+    optional_grp.add_argument(
+    '-h', '--help', action="help",
+    help='show this help message and exit',
+    )
     # parse the arguments into the name space
     args = parser.parse_args()
     return args
