@@ -1,5 +1,5 @@
 # mdvwhole
-Density based object completion over PBC.
+Density based object completion over PBC. This repository eventually will be merged with MDVoxelSegmentation.
 
 
 ## Usage
