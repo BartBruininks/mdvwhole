@@ -4,6 +4,9 @@ Density based object completion over PBC. This repository will eventually be mer
 No copies of the box are made to complete the PBC, instead we use a graph base approach. Therefore object
 completion is very light on memory and can cover an arbitrary amount of consecutive PBC crossings.
 
+## How to cite
+For now it is best to cite the original MDVoxelSegmentation paper with the note that you used the new beta 'Whole' feature.
+
 ## Install
 `pip install mdvwhole`
 
