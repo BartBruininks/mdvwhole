@@ -1,0 +1,8 @@
+argparse
+scipy
+numpy
+mdvoxelsegmentation
+networkx
+numba
+open3d
+pyvis
