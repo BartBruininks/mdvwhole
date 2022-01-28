@@ -5,7 +5,7 @@ No copies of the box are made to complete the PBC, instead we use a graph base a
 completion is very light on memory and can cover an arbitrary amount of consecutive PBC crossings.
 
 ## How to cite
-For now it is best to cite the original MDVoxelSegmentation paper with the note that you used the new beta 'Whole' feature.
+For now it is best to cite the original MDVoxelSegmentation [article](https://pubs.acs.org/doi/abs/10.1021/acs.jctc.1c00446) with the note that you used the new beta 'Whole' feature.
 
 ## Install
 `pip install mdvwhole`
