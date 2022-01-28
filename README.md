@@ -1,5 +1,5 @@
 # mdvwhole
-Density based object completion over PBC. This repository eventually will be merged with MDVoxelSegmentation.
+Density based object completion over PBC. This repository will eventually be merged with MDVoxelSegmentation.
 
 ## Install
 `pip install mdvwhole`
