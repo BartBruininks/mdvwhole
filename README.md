@@ -1,7 +1,7 @@
 # mdvwhole
 Density based object completion over PBC. This repository will eventually be merged with [MDVoxelSegmentation](https://github.com/marrink-lab/MDVoxelSegmentation).
 
-No copies of the box are made to complete the PBC, instead we use a graph base approach. Therefore object
+No copies of the box are made to complete the PBC, instead we use a graph based approach. Therefore object
 completion is very light on memory and can cover an arbitrary amount of consecutive PBC crossings.
 
 ## How to cite
