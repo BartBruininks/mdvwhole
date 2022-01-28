@@ -1,0 +1,13 @@
+.gitsyncing.txt
+LICENSE
+README.md
+setup.cfg
+setup.py
+src/mdvwhole/__init__.py
+src/mdvwhole/whole.py
+src/mdvwhole.egg-info/PKG-INFO
+src/mdvwhole.egg-info/SOURCES.txt
+src/mdvwhole.egg-info/dependency_links.txt
+src/mdvwhole.egg-info/entry_points.txt
+src/mdvwhole.egg-info/requires.txt
+src/mdvwhole.egg-info/top_level.txt

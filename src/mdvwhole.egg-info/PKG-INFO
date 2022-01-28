@@ -1,0 +1,37 @@
+Metadata-Version: 2.1
+Name: mdvwhole
+Version: 0.0.1
+Summary: A small package for making point cloud objects whole in the presence of PBC
+Home-page: https://github.com/BartBruininks/mdvwhole
+Author: BMH Bruininks
+Author-email: bartbruininks@gmail.com
+License: UNKNOWN
+Project-URL: Bug Tracker, https://github.com/BartBruininks/mdvwhole/issues
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+# mdvwhole
+Density based object completion over PBC. This repository eventually will be merged with MDVoxelSegmentation.
+
+
+## Usage
+Install the dependencies at the top of whole.py using pip.
+
+Making a single gro whole:
+
+`python whole.py -f your_gro.gro -x your_gro -o whole.gro`
+
+Making a trajectory whole:
+
+`python whole.py -f your_gro.gro -x your_xtc -o whole.xtc`
+
+Using a non-default selection:
+
+`python whole.py -f your_gro.gro -x your_xtc -o whole.xtc -sel 'not resname W WF ION and not name PO4'`
+
+
