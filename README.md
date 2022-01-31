@@ -7,6 +7,22 @@ completion is very light on memory and can cover an arbitrary amount of consecut
 ## How to cite
 For now it is best to cite the original MDVoxelSegmentation [article](https://pubs.acs.org/doi/abs/10.1021/acs.jctc.1c00446) with the note that you used the new beta 'Whole' feature.
 
+```
+@article{Bruininks2021,
+  doi = {10.1021/acs.jctc.1c00446},
+  url = {https://doi.org/10.1021/acs.jctc.1c00446},
+  year = {2021},
+  month = oct,
+  publisher = {American Chemical Society ({ACS})},
+  volume = {17},
+  number = {12},
+  pages = {7873--7885},
+  author = {Bart M. H. Bruininks and Albert S. Thie and Paulo C. T. Souza and Tsjerk A. Wassenaar and Shirin Faraji and Siewert J. Marrink},
+  title = {Sequential Voxel-Based Leaflet Segmentation of Complex Lipid Morphologies},
+  journal = {Journal of Chemical Theory and Computation}
+}
+```
+
 ## Install
 `pip install mdvwhole`
 
