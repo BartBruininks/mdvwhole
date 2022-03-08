@@ -1,5 +1,5 @@
 # mdvwhole
-Density based object completion over cubic PBC. This repository will eventually be merged with [MDVoxelSegmentation](https://github.com/marrink-lab/MDVoxelSegmentation). All PBC will be supported in the future, but for now it is not!
+Density based object completion over orthorhombic PBC. This repository will eventually be merged with [MDVoxelSegmentation](https://github.com/marrink-lab/MDVoxelSegmentation). All PBC will be supported in the future, but for now it is not!
 
 No copies of the box are made to complete the PBC, instead we use a graph based approach. Therefore object
 completion is very light on memory and can cover an arbitrary amount of consecutive PBC crossings. The contact distance is based on
