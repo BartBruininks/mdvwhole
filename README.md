@@ -27,6 +27,7 @@ For now it is best to cite the original MDVoxelSegmentation [article](https://pu
 ```
 
 ## Install
+Make sure you are installing for python 3.8 or newer.
 `pip install mdvwhole`
 
 ## Usage
