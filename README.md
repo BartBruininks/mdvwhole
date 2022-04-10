@@ -45,3 +45,13 @@ Making a trajectory whole:
 Using a non-default selection:
 
 `mdvwhole -f your_gro.gro -x your_xtc -o whole.xtc -sel 'not resname W WF ION and not name PO4'`
+
+Using multiple selections to make whole:
+
+`mdvwhole -f your_gro.gro -x your_xtc -o whole.xtc -sel 'resname POPC; not resname W WF ION POPC'`
+
+Writing all atoms even if they were not included in a selection:
+
+`mdvwhole -f your_gro.gro -x your_xtc -o whole.xtc -sel 'not resname W WF ION and not name PO4' -wa True`
+
+
