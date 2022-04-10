@@ -52,6 +52,6 @@ Using multiple selections to make whole:
 
 Writing all atoms even if they were not included in a selection:
 
-`mdvwhole -f your_gro.gro -x your_xtc -o whole.xtc -sel 'not resname W WF ION and not name PO4' -wa True`
+`mdvwhole -f your_gro.gro -x your_xtc -o whole.xtc -sel 'not resname W WF ION' -wa True`
 
 
