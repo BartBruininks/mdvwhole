@@ -634,37 +634,41 @@ class Whole():
         """
         self.voxels.atomgroup.write(name)
 
-
+    
 class MDAWhole():
     """
     A MDAnalysis compatible Whole class which can be used
     as a just in time transformation or to make the complete
     trajectory whole and write the output.
     """
-    def __init__(self, atomgroup, resolution=1):
+    def __init__(self, atomgroups, resolution=1):
         """
         Sets the atomgroup.
         """
-        self.atomgroup = atomgroup
+        self.atomgroups = atomgroups
         self.resolution = resolution
     def __call__(self, ts):
         """
         Used in the MDA transformations logic for making a frame
         whole just in time.
         """
-        Whole(self.atomgroup, resolution=self.resolution)
+        for atomgroup in self.atomgroups:
+            Whole(atomgroup, resolution=self.resolution)
         return ts
     @classmethod
-    def whole_traj(cls, atomgroup, resolution=1, out='test.xtc', write_all=False):
+    def whole_traj(cls, atomgroups, resolution=1, out='test.xtc', write_all=False):
         """
         Makes every frame whole, writes the xtc and returns the 
         whole atomgroup.
         """
-        u = atomgroup.universe
+        u = atomgroups[0].universe
         total_frames = len(u.trajectory)
         start_time = time()
-        u.trajectory.add_transformations(MDAWhole(atomgroup, resolution))
-        with mda.Writer(out, atomgroup.n_atoms) as W:
+        u.trajectory.add_transformations(MDAWhole(atomgroups, resolution))
+        combined_atomgroup = atomgroups[0]
+        for atomgroup in atomgroups[1:]:
+            combined_atomgroup += atomgroup
+        with mda.Writer(out, combined_atomgroup.n_atoms) as W:
             for frame in u.trajectory:
                 # Making a good estimate of the remainig time
                 current_frame_id = u.trajectory.frame
@@ -684,46 +688,48 @@ class MDAWhole():
                 if write_all:
                     W.write(u.atoms)
                 else:
-                    W.write(atomgroup)
+                    W.write(combined_atomgroup)
         print(f'\rDone, the whole thing took {(time()-start_time)/60:.2f} minutes.              ')
-        return atomgroup
+        return combined_atomgroup
 
 
-def test(gro, xtc, frame, selection='not resname W WF ION', resolution=1, name='whole.gro'):
-    # Load the universe.
-    u = mda.Universe(gro, xtc)
-    atomgroup = u.select_atoms(selection)
-    #u.trajectory[1200]
-    #u.trajectory[200]
-    u.trajectory[frame]
-    
-    draw_atomgroup(atomgroup)
-
-    # Create the voxel instance for testing.
-    voxels = Voxels(atomgroup, resolution=resolution)
-    voxels.label(neighbor_mask=np.ones((3,3,3)))
-    voxels.draw_labels()
-
-    # Create the whole instance for testing.
-    start_time = time()
-    whole = Whole(atomgroup, resolution=resolution)
-    total_time = time() - start_time
-    print(f'It took {total_time:.4f} seconds to make whole.')
-    graph = whole.bridges.draw_graph()
-    whole.voxels.draw_labels()
-    
-    # Draw the final atomgroup without and with labels
-    #  in the make_whole state
-    start_time = time()
-    whole.write_atomgroup(name)
-    total_time = time() - start_time
-    print(f'It took {total_time:.4f} seconds to write whole.')
-    draw_atomgroup(whole.voxels.atomgroup)
-    #TODO make it such so I can draw the labeling in the new make_whole.
-    #  This is not working for the labeling is a voxel thing, the voxels 
-    #  are filled with PBC!!! We should be able to turn this off...
-    
-    return graph
+# =============================================================================
+# def test(gro, xtc, frame, selection='not resname W WF ION', resolution=1, name='whole.gro'):
+#     # Load the universe.
+#     u = mda.Universe(gro, xtc)
+#     atomgroup = u.select_atoms(selection)
+#     #u.trajectory[1200]
+#     #u.trajectory[200]
+#     u.trajectory[frame]
+#     
+#     draw_atomgroup(atomgroup)
+# 
+#     # Create the voxel instance for testing.
+#     voxels = Voxels(atomgroup, resolution=resolution)
+#     voxels.label(neighbor_mask=np.ones((3,3,3)))
+#     voxels.draw_labels()
+# 
+#     # Create the whole instance for testing.
+#     start_time = time()
+#     whole = Whole(atomgroup, resolution=resolution)
+#     total_time = time() - start_time
+#     print(f'It took {total_time:.4f} seconds to make whole.')
+#     graph = whole.bridges.draw_graph()
+#     whole.voxels.draw_labels()
+#     
+#     # Draw the final atomgroup without and with labels
+#     #  in the make_whole state
+#     start_time = time()
+#     whole.write_atomgroup(name)
+#     total_time = time() - start_time
+#     print(f'It took {total_time:.4f} seconds to write whole.')
+#     draw_atomgroup(whole.voxels.atomgroup)
+#     #TODO make it such so I can draw the labeling in the new make_whole.
+#     #  This is not working for the labeling is a voxel thing, the voxels 
+#     #  are filled with PBC!!! We should be able to turn this off...
+#     
+#     return graph
+# =============================================================================
 
 
 # =============================================================================
@@ -784,9 +790,9 @@ def read_arguments():
     
     # OPIONAL
     optional_grp.add_argument(
-        '-sel', '--selection', nargs='?', default='not resname W WF ION', 
+        '-sel', '--selections', nargs='?', default='not resname W WF ION', 
         type = str,
-        help='the selection excluding the solvent',
+        help='the selection(s) to make whole, multiple selections can be separated with a semicolon (;)',
         )    
     optional_grp.add_argument(
         '-res', '--resolution', nargs='?', default=1, type=float,
@@ -807,19 +813,23 @@ def read_arguments():
     # parse the arguments into the name space
     args = parser.parse_args()
     return args
-
+    
 
 def main():
     """
     Makes the trajectory whole and writes it.
     """
     args = read_arguments()
+    selections = args.selections.split(';')
+    print(selections)
     print(args)
     # Loading trajectory.
     u = mda.Universe(args.reference, args.trajectory, in_memory=False)
-    atomgroup = u.select_atoms(args.selection)
+    atomgroups = []
+    for selection in selections:
+        atomgroups.append(u.select_atoms(selection))
     # Make the complete trajectory whole and write it.
-    MDAWhole.whole_traj(atomgroup, 
+    MDAWhole.whole_traj(atomgroups, 
                         out=args.out_file, 
                         resolution=args.resolution,
                         write_all=args.write_all)
