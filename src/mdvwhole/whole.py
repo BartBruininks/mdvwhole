@@ -12,8 +12,8 @@ from numba import jit
 
 
 # Visualization
-import open3d as o3d
-from pyvis import network as pvnet
+#import open3d as o3d
+#from pyvis import network as pvnet
 
 # Benchmarking
 #%load_ext line_profiler
