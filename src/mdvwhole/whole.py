@@ -12,8 +12,8 @@ from numba import jit
 
 
 # Visualization
-import open3d as o3d
-from pyvis import network as pvnet
+#import open3d as o3d
+#from pyvis import network as pvnet
 
 # Benchmarking
 #%load_ext line_profiler
@@ -281,6 +281,7 @@ class Voxels():
         self.hyperres = hyperres
         self.grid, self.voxel2atom, self.nbox = mdvseg.clustering.gen_explicit_matrix(
             self.atomgroup, resolution, hyperres)
+        print(self.nbox)
         
     def get_voxel(self, coordinates=(0,0,0)):
         """
