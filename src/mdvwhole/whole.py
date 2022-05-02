@@ -19,6 +19,20 @@ from pyvis import network as pvnet
 #%load_ext line_profiler
 
 
+def dim2lattice(x, y, z, alpha=90, beta=90, gamma=90):
+    """Convert dimensions (lengths/angles) to lattice matrix"""
+    cosa = np.cos( np.pi * alpha / 180 )
+    cosb = np.cos( np.pi * beta / 180 )
+    cosg = np.cos( np.pi * gamma / 180 )
+    sing = np.sin( np.pi * gamma / 180 )
+
+    zx = z * cosb
+    zy = z * ( cosa - cosb * cosg ) / sing
+    zz = np.sqrt( z**2 - zx**2 - zy**2 )
+
+    return np.array([x, 0, 0, y * cosg, y * sing, 0, zx, zy, zz]).reshape((3,3))
+
+
 def make_pcd(atomgroup, color=np.random.random()):
     """
     Returns a pcd with a uniform color as a pcd.
@@ -60,162 +74,11 @@ def draw_grid(grid):
     o3d.visualization.draw_geometries(pcds)
 
 
-@jit(nopython=True)
-def find_neighbor_indexes(target_indexes, labels, neighbor_mask):
-    """
-    Returns the indexes of the 27 neighbors and the dim shift in two
-    seperate arrays of (3,3,3) int32.
-    """
-    neighbor_indexes = np.zeros((3,3,3,3), dtype='int32')
-    neighbor_indexes += np.array(target_indexes, dtype='int32')
-    neighbor_indexes += neighbor_mask
-    neighbor_dim_shifts, neighbor_indexes = np.divmod(neighbor_indexes, np.array(labels.shape))
-    return neighbor_indexes, neighbor_dim_shifts
-
-
-@jit(nopython=True)
-def find_bridges(target_indexes, labels, neighbor_mask):
-    """
-    Returns the bridges with the center label, its connecting labels 
-    and the corresponding dimension shifts.
-    """
-    target_label = labels[target_indexes]
-    bridges = np.zeros((27), dtype='int32')
-    bridge_shifts = np.zeros((27,3), dtype='int32')
-    if target_label != 0:
-        indexes, dim_shifts = find_neighbor_indexes(target_indexes, labels, neighbor_mask)
-        counter = 0
-        for idxx, x in enumerate(indexes):
-            for idxy, y in enumerate(x):
-                for idxz, z in enumerate(y):
-                    bridges[counter] = labels[z[0], z[1], z[2]]
-                    bridge_shifts[counter] = dim_shifts[idxx, idxy, idxz]
-                    counter += 1
-    return target_label, bridges, bridge_shifts
-
-
-@jit(nopython=True)
-def find_all_bridges(labels, neighbor_mask):
-    """
-    Returns all bridges for all voxels. 
-    
-    Returning a list of the voxel bridges with the center label, 
-    its connecting labels and the corresponding dimension shifts.
-    """
-    voxel_amount = labels.shape[0]*labels.shape[1]*labels.shape[2]
-    all_target_labels = np.zeros((voxel_amount), dtype='int32')
-    all_pairs = np.zeros((voxel_amount, 27))
-    all_pair_shifts = np.zeros((voxel_amount, 27, 3))
-    counter = 0
-    for idxx, x in enumerate(labels):
-        for idxy, y in enumerate(x):
-            for idxz, z in enumerate(y):
-                all_target_labels[counter], all_pairs[counter], all_pair_shifts[counter] = find_bridges(
-                    (idxx, idxy, idxz), labels, neighbor_mask)
-                counter += 1
-    return all_target_labels, all_pairs, all_pair_shifts
-
-
-def create_edge_voxel_array(labels):
-    """
-    Returns all edge voxels (this could be cheaper but I do not care for now).
-    """
-    edge_mask = np.zeros(labels.shape, dtype='int32')
-    edge_mask[-1, :, :] = 1
-    edge_mask[:, -1, :] = 1
-    edge_mask[:, :, -1] = 1
-    return np.array(np.where(edge_mask == 1), dtype='int32').T
-
-
-@jit(nopython=True)
-def find_all_bridges_from_array(query_array, labels, neighbor_mask):
-    """
-    Returns all bridges for all edge voxels (one sided).
-    
-    Returning a list of the voxel pairs with the center label, 
-    its connecting labels and the corresponding dimensifts.
-    """
-    voxel_amount = len(query_array)
-    all_target_labels = np.zeros((voxel_amount), dtype='int32')
-    all_bridges = np.zeros((voxel_amount, 27))
-    all_bridge_shifts = np.zeros((voxel_amount, 27, 3))
-    for idx, query in enumerate(query_array):
-        all_target_labels[idx], all_bridges[idx], all_bridge_shifts[idx] = find_bridges(
-                    (query[0], query[1], query[2]), labels, neighbor_mask)
-    return all_target_labels, all_bridges, all_bridge_shifts
-
-
-@jit(nopython=True)
-def create_graph_input_single(label, bridges, dim_shifts):
-    """
-    Creates an array to generate the graph from the connectivity for one voxel.
-    """
-    bridges = bridges.astype('int32')
-    dim_shifts = dim_shifts.astype('int32')
-    if label != 0 and len(np.unique(bridges)) > 2:
-        non_self = np.where((bridges != 0) & (bridges != label))[0].astype('int32')
-        out = np.zeros((len(non_self), 5), dtype='int32')
-        for idx, single_pointer in enumerate(non_self):
-            out[idx] = (label, bridges[single_pointer], dim_shifts[single_pointer][0], 
-            dim_shifts[single_pointer][1], dim_shifts[single_pointer][2])
-        return out
-    else:
-        return None
-
-
-def filter_largest_bridges(graph_input):
-    """
-    Creates a sorted array to generate the graph from the connectivity for all voxels.
-    
-    the bridges are sorted from high to low occurance.
-    
-    !!!TODO!!! (or check)
-    I think it would be better if I would only return the most bridged dimension.
-    This is eventually what happens later on in the graph path finding. This is not
-    clear in the code at all, but for some reason the first is picked in the multigraph,
-    maybe this actually breaks on the (double) diagonal, for here the node count would
-    actually be shorter. Thus, remove all but the largest connection migh be more
-    predictable, on the other hand, would we miss something is we only kept the largest?
-    
-    label, target_label, x, y, z
-    """
-    sorted_graph_input = np.copy(graph_input)
-    # Use the minus sign to invert the search to descending.
-    sorted_graph_input = sorted_graph_input[np.argsort(-sorted_graph_input[:, 5])]
-    return sorted_graph_input
-
-
-def create_graph_input_all(labels, bridges, dim_shifts):
-    """
-    Creates an array to generate the graph from the connectivity for all voxels.
-    
-    label, target_label, x, y, z
-    """
-    all_arrays = []
-    for idx, _ in enumerate(labels):
-        temp_out = create_graph_input_single(labels[idx], bridges[idx], dim_shifts[idx])
-        if temp_out is not None:
-            all_arrays.append(temp_out)
-    try:
-        all_arrays = np.vstack(all_arrays)
-    except ValueError:
-        return np.zeros((2,26))
-    # We need to check for the largest PBC connection per label.
-    temp_out = np.unique(all_arrays, axis=0, return_counts=True)
-    out = np.zeros((temp_out[1].shape[0], 6))
-    out[:,:5] = temp_out[0]
-    out[:, 5] = temp_out[1]
-    out = filter_largest_bridges(out)
-    return out
-
-
 class Voxels():
     def __init__(self, atomgroup, resolution=1, hyperres=False):
-        self.atomgroup = atomgroup
         # TODO set the atoms back in their PBC using a method
         #  which works for all triclinic boxes.
-        #pbc = mdv.clustering. self.atomgroup.dimensions
-        self.atomgroup.positions %= self.atomgroup.dimensions[:3]
+        self.atomgroup = atomgroup
         self._voxelate(resolution, hyperres)
         self._neighbor_mask = self._generate_neighbor_mask()
         
@@ -233,43 +96,16 @@ class Voxels():
         with symmetries (like this algorithm).
         """
         neighbor_mask = np.zeros((3,3,3,3), dtype='int32')
-        neighbor_mask[1,0,0] = ( 0, -1, -1)
-        neighbor_mask[2,0,0] = ( 1, -1, -1)
 
-        neighbor_mask[0,1,0] = (-1,  0, -1)
-        neighbor_mask[0,2,0] = (-1,  1, -1)
+        # Rewritten: notice how each entry is m[i,j,k] = (i,j,k) - 1
+        for i in range(3):
+            neighbor_mask[i,:,:,0] = i
+            neighbor_mask[:,i,:,1] = i
+            neighbor_mask[:,:,i,2] = i
 
-        neighbor_mask[0,0,1] = (-1, -1,  0)
-        neighbor_mask[0,0,2] = (-1, -1,  1)
-
-        neighbor_mask[1,1,0] = ( 0,  0, -1)
-        neighbor_mask[0,1,1] = (-1,  0,  0)
-        neighbor_mask[1,0,1] = ( 0, -1,  0)
-
-        neighbor_mask[2,2,0] = ( 1,  1, -1)
-        neighbor_mask[0,2,2] = (-1,  1,  1)
-        neighbor_mask[2,0,2] = ( 1, -1,  1)
-
-        neighbor_mask[1,1,2] = ( 0,  0,  1)
-        neighbor_mask[2,1,1] = ( 1,  0,  0)
-        neighbor_mask[1,2,1] = ( 0,  1,  0)
-
-        neighbor_mask[2,2,1] = ( 1,  1,  0)
-        neighbor_mask[1,2,2] = ( 0,  1,  1)
-        neighbor_mask[2,1,2] = ( 1,  0,  1)
-
-        neighbor_mask[0,1,2] = (-1,  0,  1)
-        neighbor_mask[1,2,0] = ( 0,  1, -1)
-        neighbor_mask[2,1,0] = ( 1,  0, -1)
-
-        neighbor_mask[1,0,2] = ( 0, -1,  1)
-        neighbor_mask[0,2,1] = (-1,  1,  0)
-        neighbor_mask[2,0,1] = ( 1, -1,  0)
-
-        neighbor_mask[0,0,0] = (-1, -1, -1)
-        neighbor_mask[1,1,1] = ( 0,  0,  0)
-        neighbor_mask[2,2,2] = ( 1,  1,  1)
-        return neighbor_mask
+        # Isn't this the same?:
+        # return np.mgrid[-1:2, -1:2, -1:2].T
+        return neighbor_mask - 1
         
     def _voxelate(self, resolution=1, hyperres=False):
         """
@@ -425,58 +261,63 @@ class Voxels():
         draw_grid(self.labels)
     
 
-class Bridges():
-    def __init__(self, labels, neighbor_mask):
-        self.labels = labels
-        self.labelIDs = np.unique(labels)
-        self._neighbor_mask = neighbor_mask
-        self.bridges = self._find_all_bridges()
-        filter_largest_bridges(self.bridges)
-        self._make_graph()
+class Bridges:
+    def __init__(self, labelarray, neighbor_mask, vbox):
+        # Set the mask for the faces of the array (given voxel distance d)
+        d = 1
+        vx, vy, vz = labelarray.shape
+        grid = np.mgrid[:vx, :vy, :vz].transpose((1,2,3,0))
+        faces = ~np.pad(np.ones((vx-2*d, vy-2*d, vz-2*d) ,dtype=bool), d)
+
+        # Get the labels and voxelindices for non-empty face voxels
+        facelabels = labelarray[faces]
+        labeled = facelabels > 0
+        facevoxels = grid[faces][labeled]
+        facelabels = facelabels[labeled]
+
+        # Group the voxels per label
+        order = facelabels.argsort()
+        facevoxels = facevoxels[order]
+        facelabels = facelabels[order]
+        labels, counts = np.unique(facelabels, return_counts=True)
+        perlabel = np.split(facevoxels, counts[:-1].cumsum())
+
+        # Restrict the shifts 
+        up = [] # Don't shift these
+        lo = [] # Shift only these
+        for group in perlabel:
+            up.append(group[np.any(group >= np.diagonal(vbox) - d, axis=1)])
+            lo.append(group[np.any(group < d, axis=1)])
+        
+        # These are the 7 positive lattice shifts
+        shifts = np.mgrid[:2,:2,:2].T.reshape((-1,3))[1:]
+
+        # For every combination and every shift determine the bridges
+        bridges = np.zeros((len(labels), len(labels), len(shifts)), dtype=int)
+        for i, A in enumerate(lo):
+            for s, shift in enumerate(shifts):
+                shifted = A.copy()
+                for k in range(3):
+                    if shift[k]:
+                        shifted = shifted[shifted[:, k] <= d]
+                if len(shifted) == 0:
+                    continue
+                shifted = shifted + (shift @ vbox)
+                for j, B in enumerate(up):
+                    bridges[i, j, s] = np.sum(np.abs(shifted[:, None] - B[None, :]).max(axis=2) <= 1)
+
+        # make_graph
+        G = nx.MultiDiGraph()
+        G.add_nodes_from(labels)
+
+        for a, b, s in zip(*np.where(bridges)):
+            shift = shifts[s]
+            G.add_edge(labels[a], labels[b], label=str(-shift), value=bridges[a,b,s], cost=-shift)
+            G.add_edge(labels[b], labels[a], label=str(shift), value=bridges[a,b,s], cost=shift)
+
+        self.graph = G
         self._find_subgraphs()
         
-    def _find_bridges(self, target_indexes):
-        """
-        Returns an array of all bridges for the target voxel.
-        
-        Bridges are annotated with their associated dimension
-        shift.
-        
-        np.array():
-            label, connecting_label, x, y, z
-        """
-        return find_bridges(target_indexes, self.labels, self._neighbor_mask)
-    
-    def _find_all_bridges(self):
-        """
-        Returns an array of all bridges.
-        
-        Bridges are annotated with their associated dimension
-        shift.
-        
-        np.array():
-            label, connecting_label, x, y, z
-        """
-        indexes = create_edge_voxel_array(self.labels)
-        #indexes = np.array(np.where(self.labels[indexes.T] >= 1), dtype='int32').T
-        results = find_all_bridges_from_array(indexes, self.labels, self._neighbor_mask)
-        return create_graph_input_all(*results) 
-    
-    def _make_graph(self):
-        """
-        Sets and returns a directed multigraph of the bridge connectivity. 
-        The dimension, direction and connectivity are stored in the edge 
-        as an special attribute 'dimension' and the connectivity is the
-        weight of the edge. 
-        """
-        G = nx.MultiDiGraph()
-        G.add_nodes_from(range(len(self.labelIDs)))
-        for bridge in self.bridges:
-            G.add_edge(int(bridge[0]), int(bridge[1]), label=f'{ bridge[2:5]}', value=int(bridge[5]), cost= tuple(bridge[2:5]))
-            G.add_edge(int(bridge[1]), int(bridge[0]), label=f'{-bridge[2:5]}', value=int(bridge[5]), cost= tuple(-bridge[2:5]))
-        self.graph = G
-        return G
-    
     def _find_subgraphs(self):
         """
         Sets and returns the subgraphs in the bridges as list of set(labelIDs)
@@ -490,7 +331,6 @@ class Bridges():
         graph_ids = range(len(sub_graphs))
         self.sub_graphs_nodes = dict(zip(graph_ids, sub_graphs))
         return self.sub_graphs_nodes
-        
     
     def draw_graph(self, name='out.html', height='600px', width='600px'):
         """
@@ -523,13 +363,13 @@ class Bridges():
         net.from_nx(g)
         return net.show(name)
 
-
+    
 class Whole():
     def __init__(self, atomgroup, resolution=1, hyperres=False, 
                  neighbor_mask=np.ones((3,3,3))):
         self.voxels = Voxels(atomgroup, resolution, hyperres)
         self.voxels.label(neighbor_mask=neighbor_mask)
-        self.bridges = Bridges(self.voxels.labels, self.voxels._neighbor_mask)
+        self.bridges = Bridges(self.voxels.labels, self.voxels._neighbor_mask, self.voxels.nbox)
         self._find_biggest_labels()
         self._find_all_paths()
         self._shift_all_atoms()
@@ -606,8 +446,8 @@ class Whole():
         """
         shifted_atomgroup = self.voxels.atomgroup
         label_atomgroup = self.voxels.get_label(label)
-        box_dimensions = shifted_atomgroup.dimensions
-        shifted_atomgroup.intersection(label_atomgroup).positions += box_dimensions[:3] * shift
+        box = dim2lattice(*shifted_atomgroup.dimensions)
+        shifted_atomgroup.intersection(label_atomgroup).positions += shift @ box
 
         return shifted_atomgroup
     
