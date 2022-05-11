@@ -80,32 +80,7 @@ class Voxels():
         #  which works for all triclinic boxes.
         self.atomgroup = atomgroup
         self._voxelate(resolution, hyperres)
-        self._neighbor_mask = self._generate_neighbor_mask()
-        
-    def _generate_neighbor_mask(self):
-        """
-        Returns the offset for a 27 neighbor connection.
-        
-        #TODO Update this mask and all functions using it
-        so that it also allows for a 1/8 top right view.
-        This due to the fact that every contact is symmetric
-        in every dimension. This makes the whol a lot faster.
-        However, the select neighbors is nice anyway to have
-        so I think I will keep it like this and add the 
-        other option for speed ups in certain scenarios
-        with symmetries (like this algorithm).
-        """
-        neighbor_mask = np.zeros((3,3,3,3), dtype='int32')
-
-        # Rewritten: notice how each entry is m[i,j,k] = (i,j,k) - 1
-        for i in range(3):
-            neighbor_mask[i,:,:,0] = i
-            neighbor_mask[:,i,:,1] = i
-            neighbor_mask[:,:,i,2] = i
-
-        # Isn't this the same?:
-        # return np.mgrid[-1:2, -1:2, -1:2].T
-        return neighbor_mask - 1
+        # self.neighbor_mask = np.mgrid[-1:2, -1:2, -1:2].T
         
     def _voxelate(self, resolution=1, hyperres=False):
         """
@@ -262,7 +237,7 @@ class Voxels():
     
 
 class Bridges:
-    def __init__(self, labelarray, neighbor_mask, vbox):
+    def __init__(self, labelarray, vbox):
         # Set the mask for the faces of the array (given voxel distance d)
         d = 1
         vx, vy, vz = labelarray.shape
