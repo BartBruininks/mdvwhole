@@ -110,12 +110,6 @@ class Voxels():
             voxels, self.voxel2atom, self.atomgroup)
         return atomgroup
     
-    def find_neighbor_indexes(self, target_indexes):
-        """
-        Returns the indexes of the neighboring voxels.
-        """
-        return find_neighbor_indexes(target_indexes, self.labels, self._neighbor_mask)
-    
     def _label_count(self):
         """
         Returns a dictionary with the labels as keys and the amount of 
@@ -344,7 +338,7 @@ class Whole():
                  neighbor_mask=np.ones((3,3,3))):
         self.voxels = Voxels(atomgroup, resolution, hyperres)
         self.voxels.label(neighbor_mask=neighbor_mask)
-        self.bridges = Bridges(self.voxels.labels, self.voxels._neighbor_mask, self.voxels.nbox)
+        self.bridges = Bridges(self.voxels.labels, self.voxels.nbox)
         self._find_biggest_labels()
         self._find_all_paths()
         self._shift_all_atoms()
