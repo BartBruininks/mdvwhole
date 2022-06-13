@@ -1,5 +1,5 @@
 # mdvwhole
-Density based object completion over orthorhombic PBC. All PBC will be supported in the future, but for now it is not! This repository will eventually be merged with [MDVoxelSegmentation](https://github.com/marrink-lab/MDVoxelSegmentation).
+Density based object completion over all PBC. This repository will eventually be merged with [MDVoxelSegmentation](https://github.com/marrink-lab/MDVoxelSegmentation).
 
 No copies of the box are made to complete the PBC, instead we use a graph based approach. Therefore object
 completion is very light on memory and can cover an arbitrary amount of consecutive PBC crossings. The contact distance is based on
@@ -31,7 +31,7 @@ Make sure you are installing for python 3.8 or newer.
 
 `pip install mdvwhole`
 
-If you are running into issues with the astype('int32') statement, it means you are probably running in a lower version of python, or you do not have te latest version of numba. By commenting out the @jit lines one can disable the numba acceleration. This will make it roughly 1.5x slower, but now it will run on any version of python3. It would be nice if this was a flag which could be set.
+If you are running into issues with the astype('int32') statement, it means you are probably running in a lower version of python (<3.8), or you do not have te latest version of numba. By commenting out the @jit lines one can disable the numba acceleration. This will make it roughly 1.5x slower, but now it will run on any version of python3. It would be nice if this was a flag which could be set.
 
 ## Usage
 Making a single gro whole:
