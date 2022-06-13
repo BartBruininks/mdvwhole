@@ -36,7 +36,7 @@ If you are running into issues with the astype('int32') statement, it means you 
 ## Usage
 Print help:
 
-mdvwhole -h
+`mdvwhole -h`
 
 Making a single gro whole:
 
