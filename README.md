@@ -36,11 +36,19 @@ If you are running into issues with the astype('int32') statement, it means you 
 ## Usage
 Making a single gro whole:
 
-`mdvwhole -f your_gro.gro -x your_gro -o whole.gro`
+`mdvwhole -f your_gro.gro`
+
+Making a single gro whole and also complete single molecules:
+
+`mdvwhole -f your_tpr.tpr -x your_gro.gro -mol True -o whole.gro`
 
 Making a trajectory whole:
 
 `mdvwhole -f your_gro.gro -x your_xtc -o whole.xtc`
+
+Making a trajectory whole and also complete single molecules:
+
+`mdvwhole -f your_tpr.tpr -x your_xtc -mol True -o whole.xtc`
 
 Using a non-default selection:
 
