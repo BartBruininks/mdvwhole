@@ -9,6 +9,7 @@ import MDAnalysis as mda
 import networkx as nx
 from time import time
 from numba import jit
+from MDAnalysis import transformations
 
 
 # Visualization
@@ -465,7 +466,7 @@ class MDAWhole():
             Whole(atomgroup, resolution=self.resolution)
         return ts
     @classmethod
-    def whole_traj(cls, atomgroups, resolution=1, out='test.xtc', write_all=False):
+    def whole_traj(cls, atomgroups, resolution=1, out='test.xtc', write_all=False, mol_whole=False):
         """
         Makes every frame whole, writes the xtc and returns the 
         whole atomgroup.
@@ -473,7 +474,10 @@ class MDAWhole():
         u = atomgroups[0].universe
         total_frames = len(u.trajectory)
         start_time = time()
-        u.trajectory.add_transformations(MDAWhole(atomgroups, resolution))
+        workflow = [MDAWhole(atomgroups, resolution)]
+        if mol_whole:
+            workflow.append(transformations.unwrap(u.atoms))
+        u.trajectory.add_transformations(*workflow)
         combined_atomgroup = atomgroups[0]
         for atomgroup in atomgroups[1:]:
             combined_atomgroup += atomgroup
@@ -592,12 +596,12 @@ def read_arguments():
         '-f', '--reference', nargs='?', required=True, type=str,
         help='an MDAnalysis compatible coordinate file including atom names, resids and positions (e.g. GRO, TPR or PDB)',
         )
-    required_grp.add_argument(
-        '-x', '--trajectory', nargs='?', required=True, type=str,
-        help='an MDAnalysis compatible trajectory file (e.g. XTC)',
-        )
     
     # OPIONAL
+    required_grp.add_argument(
+        '-x', '--trajectory', nargs='?', default=None, type=str,
+        help='an MDAnalysis compatible coordinate or trajectory file (e.g. GRO, PDB, XTC)',
+        )
     optional_grp.add_argument(
         '-sel', '--selections', nargs='?', default='not resname W WF ION', 
         type = str,
@@ -612,8 +616,12 @@ def read_arguments():
         help='the path for writing the whole (e.g. XTC, GRO) (default=whole.xtc)',
         )
     optional_grp.add_argument(
-        '-wa', '--write_all', nargs='?', default=False, type=bool,
+        '-wa', '--write_all', nargs='?', default=False, type=str,
         help='write all atoms from the original input (default=False)'
+        )
+    optional_grp.add_argument(
+        '-mol', '--mol_whole', nargs='?', default=False, type=str,
+        help='make molecules whole over pbc, this requires a tpr (default=False)'
         )
     optional_grp.add_argument(
     '-h', '--help', action="help",
@@ -621,6 +629,29 @@ def read_arguments():
     )
     # parse the arguments into the name space
     args = parser.parse_args()
+    
+    # Set the trajectory to the gro if it is not specified.
+    if args.trajectory == None:
+        args.out_file = 'whole.gro'
+        args.trajectory = args.reference
+    
+    # Fixing the text input bools
+    if args.write_all == False:
+        pass
+    elif args.write_all == "False":
+        args.write_all = False
+    elif args.write_all == "True":
+        args.write_all = True
+    else:
+        raise ValueError('The -wa input should be either True or False.')
+    if args.mol_whole == False:
+        pass
+    elif args.mol_whole == "False":
+        args.mol_whole = False
+    elif args.mol_whole == "True":
+        args.mol_whole = True
+    else:
+        raise ValueError('The -mol input should be either True or False.')
     return args
     
 
@@ -633,7 +664,10 @@ def main():
     print(selections)
     print(args)
     # Loading trajectory.
-    u = mda.Universe(args.reference, args.trajectory, in_memory=False)
+    if args.reference == args.trajectory:
+        u = mda.Universe(args.reference, in_memory=False)    
+    else:
+        u = mda.Universe(args.reference, args.trajectory, in_memory=False)
     atomgroups = []
     for selection in selections:
         atomgroups.append(u.select_atoms(selection))
@@ -641,7 +675,8 @@ def main():
     MDAWhole.whole_traj(atomgroups, 
                         out=args.out_file, 
                         resolution=args.resolution,
-                        write_all=args.write_all)
+                        write_all=args.write_all,
+                        mol_whole=args.mol_whole)
 
 
 if __name__ == "__main__":
