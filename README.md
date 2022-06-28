@@ -31,10 +31,6 @@ Make sure you are installing for python 3.8 or newer.
 
 `pip install mdvwhole`
 
-!!! DUE TO A BUG IN 0.0.5 YOU SHOULD USE VERSION 0.0.4 WHICH HAS ONLY CUBIC PBC !!!
-
-`pip install mdvwhole==0.0.4`
-
 ## Usage
 Print help:
 
