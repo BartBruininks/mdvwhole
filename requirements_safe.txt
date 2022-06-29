@@ -49,7 +49,7 @@ MarkupSafe==2.0.1
 matplotlib==3.5.1
 matplotlib-inline==0.1.3
 MDAnalysis==2.0.0
-mdvoxelsegmentation==1.1.5
+mdvoxelsegmentation==1.1.6
 mdvwhole==0.0.2
 mistune==0.8.4
 mmtf-python==1.1.2
