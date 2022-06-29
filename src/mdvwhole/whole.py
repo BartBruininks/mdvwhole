@@ -8,13 +8,12 @@ import mdvoxelsegmentation as mdvseg
 import MDAnalysis as mda
 import networkx as nx
 from time import time
-from numba import jit
 from MDAnalysis import transformations
 
 
 # Visualization
-import open3d as o3d
-from pyvis import network as pvnet
+#import open3d as o3d
+#from pyvis import network as pvnet
 
 # Benchmarking
 #%load_ext line_profiler
@@ -34,46 +33,48 @@ def dim2lattice(x, y, z, alpha=90, beta=90, gamma=90):
     return np.array([x, 0, 0, y * cosg, y * sing, 0, zx, zy, zz]).reshape((3,3))
 
 
-def make_pcd(atomgroup, color=np.random.random()):
-    """
-    Returns a pcd with a uniform color as a pcd.
-    """
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(atomgroup.positions)
-    pcd.paint_uniform_color(color)
-    return pcd
-
-
-def draw_atomgroup(atomgroup, color=np.random.random(3)):
-    """
-    Draws an atomgroup as a pointcloud using o3d.
-    """
-    pcd = make_pcd(atomgroup, color)
-    o3d.visualization.draw_geometries([pcd])
-
-
-def draw_grid(grid):
-    """
-    Draws a boolean or integer grid using o3d. Can also be used
-    to visualize the labels in voxel format.
-    """
-    labels = np.unique(grid)
-    
-    # Create some random colors and prevent complete white.
-    colors = np.random.random((len(labels), 3))
-    colors[colors >= 0.95] = 0.95
-    
-    pcds = []
-    for idx, label in enumerate(labels):
-        if label == 0:
-            continue
-        points = np.array(np.where(grid == label)).T
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(points)
-        pcd.paint_uniform_color(colors[idx])
-        pcds.append(pcd)
-    o3d.visualization.draw_geometries(pcds)
-
+# =============================================================================
+# def make_pcd(atomgroup, color=np.random.random()):
+#     """
+#     Returns a pcd with a uniform color as a pcd.
+#     """
+#     pcd = o3d.geometry.PointCloud()
+#     pcd.points = o3d.utility.Vector3dVector(atomgroup.positions)
+#     pcd.paint_uniform_color(color)
+#     return pcd
+# 
+# 
+# def draw_atomgroup(atomgroup, color=np.random.random(3)):
+#     """
+#     Draws an atomgroup as a pointcloud using o3d.
+#     """
+#     pcd = make_pcd(atomgroup, color)
+#     o3d.visualization.draw_geometries([pcd])
+# 
+# 
+# def draw_grid(grid):
+#     """
+#     Draws a boolean or integer grid using o3d. Can also be used
+#     to visualize the labels in voxel format.
+#     """
+#     labels = np.unique(grid)
+#     
+#     # Create some random colors and prevent complete white.
+#     colors = np.random.random((len(labels), 3))
+#     colors[colors >= 0.95] = 0.95
+#     
+#     pcds = []
+#     for idx, label in enumerate(labels):
+#         if label == 0:
+#             continue
+#         points = np.array(np.where(grid == label)).T
+#         pcd = o3d.geometry.PointCloud()
+#         pcd.points = o3d.utility.Vector3dVector(points)
+#         pcd.paint_uniform_color(colors[idx])
+#         pcds.append(pcd)
+#     o3d.visualization.draw_geometries(pcds)
+# 
+# =============================================================================
 
 class Voxels():
     def __init__(self, atomgroup, resolution=1, hyperres=False):
@@ -182,53 +183,61 @@ class Voxels():
         self.label_atomgroups = dict(zip(labelIDs, atomgroups))
         return self.label_atomgroups
     
-    def draw_label(self, label, color=np.random.random(3)):
-        """
-        Draws all the atoms in the label using o3d. A color can be
-        specified.
-        """
-        # If not labels, create them.
-        self.__checkNset_labels()
+# =============================================================================
+#     def draw_label(self, label, color=np.random.random(3)):
+#         """
+#         Draws all the atoms in the label using o3d. A color can be
+#         specified.
+#         """
+#         # If not labels, create them.
+#         self.__checkNset_labels()
+#         
+#         # Draw the label.
+#         label_atomgroup = self.get_label(label)
+#         print(f'Drawing label {label} with {len(label_atomgroup)} atoms.')
+#         draw_atomgroup(label_atomgroup, color)
+# =============================================================================
         
-        # Draw the label.
-        label_atomgroup = self.get_label(label)
-        print(f'Drawing label {label} with {len(label_atomgroup)} atoms.')
-        draw_atomgroup(label_atomgroup, color)
+# =============================================================================
+#     def draw_labels(self):
+#         """
+#         Draws all labels with a random color using o3d.
+#         
+#         #TODO Use a seaborn cycle for colors with specified spread.
+#         """
+#         # If not self.label_atomgroups create them.
+#         if not hasattr(self, 'label_atomgroups'):
+#             self.get_labels()
+#         
+#         # Perform the drawing logic.
+#         pcds = []
+#         # Create some random colors and prevent complete white.
+#         colors = np.random.random((len(self.label_count), 3))
+#         colors[colors >= 0.95] = 0.95
+#         # Create the pointclouds
+#         for idx, atomgroup in enumerate(self.label_atomgroups.values()):
+#             pcds.append(make_pcd(atomgroup, colors[idx]))
+#         # Draw the pointclouds.
+#         o3d.visualization.draw_geometries(pcds)
+# =============================================================================
         
-    def draw_labels(self):
-        """
-        Draws all labels with a random color using o3d.
-        
-        #TODO Use a seaborn cycle for colors with specified spread.
-        """
-        # If not self.label_atomgroups create them.
-        if not hasattr(self, 'label_atomgroups'):
-            self.get_labels()
-        
-        # Perform the drawing logic.
-        pcds = []
-        # Create some random colors and prevent complete white.
-        colors = np.random.random((len(self.label_count), 3))
-        colors[colors >= 0.95] = 0.95
-        # Create the pointclouds
-        for idx, atomgroup in enumerate(self.label_atomgroups.values()):
-            pcds.append(make_pcd(atomgroup, colors[idx]))
-        # Draw the pointclouds.
-        o3d.visualization.draw_geometries(pcds)
-        
-    def draw_grid(self):
-        """
-        Draws the grid using o3d.
-        """
-        draw_grid(self.grid)
+# =============================================================================
+#     def draw_grid(self):
+#         """
+#         Draws the grid using o3d.
+#         """
+#         draw_grid(self.grid)
+# =============================================================================
     
-    def draw_labels_grid(self):
-        """
-        Draws the labels using o3d.
-        """
-        # If not labels, create them.
-        self.__checkNset_labels()   
-        draw_grid(self.labels)
+# =============================================================================
+#     def draw_labels_grid(self):
+#         """
+#         Draws the labels using o3d.
+#         """
+#         # If not labels, create them.
+#         self.__checkNset_labels()   
+#         draw_grid(self.labels)
+# =============================================================================
     
 
 class Bridges:
@@ -302,36 +311,38 @@ class Bridges:
         self.sub_graphs_nodes = dict(zip(graph_ids, sub_graphs))
         return self.sub_graphs_nodes
     
-    def draw_graph(self, name='out.html', height='600px', width='600px'):
-        """
-        Draws the bridges graph using pvnet. The nodes represent the labelIDs.
-        The width of the edges represents the amount of bridges between two 
-        segements. The edge label is the dimension of the connection.
-        """
-        g = self.graph.copy() # some attributes added to nodes
-        net = pvnet.Network(notebook=True, directed=True, height=height, width=width)
-        opts = '''
-            var options = {
-              "physics": {
-                "forceAtlas2Based": {
-                  "gravitationalConstant": -200,
-                  "centralGravity": 0.11,
-                  "springLength": 100,
-                  "springConstant": 0.09,
-                  "avoidOverlap": 1
-                },
-                "minVelocity": 0.75,
-                "solver": "forceAtlas2Based",
-                "timestep": 0.22
-              }
-            }
-        '''
-
-        net.set_options(opts)
-        # uncomment this to play with layout
-        #net.show_buttons(filter_=['physics'])
-        net.from_nx(g)
-        return net.show(name)
+# =============================================================================
+#     def draw_graph(self, name='out.html', height='600px', width='600px'):
+#         """
+#         Draws the bridges graph using pvnet. The nodes represent the labelIDs.
+#         The width of the edges represents the amount of bridges between two 
+#         segements. The edge label is the dimension of the connection.
+#         """
+#         g = self.graph.copy() # some attributes added to nodes
+#         net = pvnet.Network(notebook=True, directed=True, height=height, width=width)
+#         opts = '''
+#             var options = {
+#               "physics": {
+#                 "forceAtlas2Based": {
+#                   "gravitationalConstant": -200,
+#                   "centralGravity": 0.11,
+#                   "springLength": 100,
+#                   "springConstant": 0.09,
+#                   "avoidOverlap": 1
+#                 },
+#                 "minVelocity": 0.75,
+#                 "solver": "forceAtlas2Based",
+#                 "timestep": 0.22
+#               }
+#             }
+#         '''
+# 
+#         net.set_options(opts)
+#         # uncomment this to play with layout
+#         #net.show_buttons(filter_=['physics'])
+#         net.from_nx(g)
+#         return net.show(name)
+# =============================================================================
 
     
 class Whole():
@@ -504,81 +515,6 @@ class MDAWhole():
                     W.write(combined_atomgroup)
         print(f'\rDone, the whole thing took {(time()-start_time)/60:.2f} minutes.              ')
         return combined_atomgroup
-
-
-# =============================================================================
-# def test(gro, xtc, frame, selection='not resname W WF ION', resolution=1, name='whole.gro'):
-#     # Load the universe.
-#     u = mda.Universe(gro, xtc)
-#     atomgroup = u.select_atoms(selection)
-#     #u.trajectory[1200]
-#     #u.trajectory[200]
-#     u.trajectory[frame]
-#     
-#     draw_atomgroup(atomgroup)
-# 
-#     # Create the voxel instance for testing.
-#     voxels = Voxels(atomgroup, resolution=resolution)
-#     voxels.label(neighbor_mask=np.ones((3,3,3)))
-#     voxels.draw_labels()
-# 
-#     # Create the whole instance for testing.
-#     start_time = time()
-#     whole = Whole(atomgroup, resolution=resolution)
-#     total_time = time() - start_time
-#     print(f'It took {total_time:.4f} seconds to make whole.')
-#     graph = whole.bridges.draw_graph()
-#     whole.voxels.draw_labels()
-#     
-#     # Draw the final atomgroup without and with labels
-#     #  in the make_whole state
-#     start_time = time()
-#     whole.write_atomgroup(name)
-#     total_time = time() - start_time
-#     print(f'It took {total_time:.4f} seconds to write whole.')
-#     draw_atomgroup(whole.voxels.atomgroup)
-#     #TODO make it such so I can draw the labeling in the new make_whole.
-#     #  This is not working for the labeling is a voxel thing, the voxels 
-#     #  are filled with PBC!!! We should be able to turn this off...
-#     
-#     return graph
-# =============================================================================
-
-
-# =============================================================================
-# def whole_traj(atomgroup, resolution=1, out='whole.xtc', write_all=False):
-#     """
-#     Makes every frame whole and write the xtc and returns the whole atomgroup.
-#     """
-#     u = atomgroup.universe
-#     total_frames = len(u.trajectory)
-#     start_time = time()
-#     with mda.Writer(out, atomgroup.n_atoms) as W:
-#         for frame in u.trajectory:
-#             # Making a good estimate of the remainig time
-#             current_frame_id = atomgroup.universe.trajectory.frame
-#             frame_time = time()
-#             projected_total_time = ((total_frames/(current_frame_id+0.0001))) * (frame_time-start_time)
-#             time_left = (1 - current_frame_id/total_frames) * projected_total_time
-#             # Some time left printing logic (seconds, minutes, hours)
-#             if time_left <= 60:
-#                 print(f'\rFrame {current_frame_id}/{total_frames} {time_left:.2f} seconds remaining.     ', end='')
-#             elif time_left < 3600:
-#                 time_left /= 60
-#                 print(f'\rFrame {current_frame_id}/{total_frames} {time_left:.2f} minutes remaining.     ', end='')
-#             else:
-#                 time_left /= 3600
-#                 print(f'\rFrame {current_frame_id}/{total_frames} {time_left:.2f} hours remaining.     ', end='')
-#             # Doing the actual calculation
-#             whole = Whole(atomgroup, resolution=resolution)
-#             if write_all:
-#                 W.write(whole.voxels.atomgroup.universe.atoms)
-#             else:
-#                 W.write(whole.voxels.atomgroup)     
-#     print(f'\rDone, the whole thing took {(time()-start_time)/60:.2f} minutes.              ')
-#     return atomgroup
-# =============================================================================
-
 
 def read_arguments():
     """
