@@ -5,6 +5,9 @@ No copies of the box are made to complete the PBC, instead we use a graph based 
 completion is very light on memory and can cover an arbitrary amount of consecutive PBC crossings. The contact distance is based on
 the voxel resolution (26 neighbors).
 
+# Version
+0.0.7 This version is safe to use for production. 
+
 ![alt text](https://user-images.githubusercontent.com/1488903/151573692-58d1eb6c-b6a2-444e-a7b8-937fa8ebc448.png)
 
 ## How to cite
