@@ -287,13 +287,16 @@ class Bridges:
 
         # make_graph
         G = nx.MultiDiGraph()
+        print(labels, type(labels), type(labels[0]))
+        labels = [int(label) for label in labels]
+        print(labels, type(labels), type(labels[0]))
         G.add_nodes_from(labels)
 
         for a, b, s in zip(*np.where(bridges)):
-            shift = shifts[s]
-            G.add_edge(labels[a], labels[b], label=str(-shift), value=bridges[a,b,s], cost=-shift)
-            G.add_edge(labels[b], labels[a], label=str(shift), value=bridges[a,b,s], cost=shift)
-
+            shift = tuple([int(x) for x in shifts[s]])
+            rev_shift = tuple([-int(x) for x in shifts[s]])
+            G.add_edge(labels[a], labels[b], label=str(rev_shift), value=int(bridges[a,b,s]), cost=rev_shift)
+            G.add_edge(labels[b], labels[a], label=str(shift), value=int(bridges[a,b,s]), cost=shift)
         self.graph = G
         self._find_subgraphs()
         
