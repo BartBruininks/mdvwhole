@@ -287,9 +287,7 @@ class Bridges:
 
         # make_graph
         G = nx.MultiDiGraph()
-        print(labels, type(labels), type(labels[0]))
         labels = [int(label) for label in labels]
-        print(labels, type(labels), type(labels[0]))
         G.add_nodes_from(labels)
 
         for a, b, s in zip(*np.where(bridges)):
