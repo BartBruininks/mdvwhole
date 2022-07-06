@@ -67,7 +67,7 @@ Writing all atoms even if they were not included in a selection:
 
 `mdvwhole -f your_gro.gro -x your_xtc -o whole.xtc -sel 'not resname W WF ION' -wa True`
 
-Using a mdvoxelsegmentation 'clusters.npy' to make whole (can also be used without whole molecules and on a single gro).
+Using an mdvoxelsegmentation 'clusters.npy' to make whole (can also be used without whole molecules and on a single gro).
 
 `mdvwhole -f your_tpr.tpr -x your_xtc -o whole.xtc -wa True -mol True -clus your_clusters.npy `
 
