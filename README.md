@@ -69,6 +69,8 @@ Writing all atoms even if they were not included in a selection:
 
 Using an mdvoxelsegmentation 'clusters.npy' to make whole (can also be used without whole molecules and on a single gro).
 
-`mdvwhole -f your_tpr.tpr -x your_xtc -o whole.xtc -wa True -mol True -clus your_clusters.npy `
+`mdvwhole -f your_tpr.tpr -x your_xtc -o whole.xtc -wa True -mol True -clus your_clusters.npy`
 
-
+<p align="center">
+<iframe width="456" height="811" src="https://www.youtube.com/embed/UHyJnBZY9Tk" title="phase transition whole" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</p>
