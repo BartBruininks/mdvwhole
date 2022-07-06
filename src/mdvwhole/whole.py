@@ -488,8 +488,14 @@ class MDAWhole():
         start_time = time()
         workflow = [MDAWhole(atomgroups, resolution)]
         if mol_whole:
-            workflow.append(transformations.unwrap(u.atoms))
-        u.trajectory.add_transformations(*workflow)
+            # Making it faster by just taking the edge particles (1nm res)
+            voxels = Voxels(u.atoms, -1, False) 
+            edge_voxel_mask = np.ones(voxels.grid.shape)
+            edge_voxel_mask[:-1, :-1:, :-1] = 0 
+            voxels.grid[edge_voxel_mask != voxels.grid] = 0 
+            edge_atomgroup = voxels.get_label(1) 
+            workflow.append(transformations.unwrap(edge_atomgroup)) 
+        u.trajectory.add_transformations(*workflow) 
         combined_atomgroup = atomgroups[0]
         for atomgroup in atomgroups[1:]:
             combined_atomgroup += atomgroup
