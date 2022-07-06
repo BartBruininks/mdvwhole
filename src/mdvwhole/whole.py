@@ -287,13 +287,14 @@ class Bridges:
 
         # make_graph
         G = nx.MultiDiGraph()
+        labels = [int(label) for label in labels]
         G.add_nodes_from(labels)
 
         for a, b, s in zip(*np.where(bridges)):
-            shift = shifts[s]
-            G.add_edge(labels[a], labels[b], label=str(-shift), value=bridges[a,b,s], cost=-shift)
-            G.add_edge(labels[b], labels[a], label=str(shift), value=bridges[a,b,s], cost=shift)
-
+            shift = tuple([int(x) for x in shifts[s]])
+            rev_shift = tuple([-int(x) for x in shifts[s]])
+            G.add_edge(labels[a], labels[b], label=str(rev_shift), value=int(bridges[a,b,s]), cost=rev_shift)
+            G.add_edge(labels[b], labels[a], label=str(shift), value=int(bridges[a,b,s]), cost=shift)
         self.graph = G
         self._find_subgraphs()
         
@@ -487,8 +488,19 @@ class MDAWhole():
         start_time = time()
         workflow = [MDAWhole(atomgroups, resolution)]
         if mol_whole:
-            workflow.append(transformations.unwrap(u.atoms))
-        u.trajectory.add_transformations(*workflow)
+            # Making it faster by just taking the edge particles (1nm res)
+            #TODO THIS CAN BE EVEN FASTER BY ONLY CONSIDERING THE PBC SEGMENTS
+            # THE NON PBC SEGMENTS ARE ALREADY WHOLE!!! THIS WOULD REDUCE THE
+            # THE AMOUNT OF VOXELS TO CONSIDER EVEN MORE. HOWEVER THE CURRENT
+            # OPTIMIZATION IS ALREADY VERY GOOD AND WORKS EXTREMELY WELL FOR
+            # FOR LASRGE SYSTEMS
+            voxels = Voxels(u.atoms, -1, False) 
+            edge_voxel_mask = np.ones(voxels.grid.shape)
+            edge_voxel_mask[:-1, :-1:, :-1] = 0 
+            voxels.grid[edge_voxel_mask != voxels.grid] = 0 
+            edge_atomgroup = voxels.get_label(1)
+            workflow.append(transformations.unwrap(edge_atomgroup)) 
+        u.trajectory.add_transformations(*workflow) 
         combined_atomgroup = atomgroups[0]
         for atomgroup in atomgroups[1:]:
             combined_atomgroup += atomgroup
