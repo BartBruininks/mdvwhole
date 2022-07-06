@@ -489,11 +489,16 @@ class MDAWhole():
         workflow = [MDAWhole(atomgroups, resolution)]
         if mol_whole:
             # Making it faster by just taking the edge particles (1nm res)
+            #TODO THIS CAN BE EVEN FASTER BY ONLY CONSIDERING THE PBC SEGMENTS
+            # THE NON PBC SEGMENTS ARE ALREADY WHOLE!!! THIS WOULD REDUCE THE
+            # THE AMOUNT OF VOXELS TO CONSIDER EVEN MORE. HOWEVER THE CURRENT
+            # OPTIMIZATION IS ALREADY VERY GOOD AND WORKS EXTREMELY WELL FOR
+            # FOR LASRGE SYSTEMS
             voxels = Voxels(u.atoms, -1, False) 
             edge_voxel_mask = np.ones(voxels.grid.shape)
             edge_voxel_mask[:-1, :-1:, :-1] = 0 
             voxels.grid[edge_voxel_mask != voxels.grid] = 0 
-            edge_atomgroup = voxels.get_label(1) 
+            edge_atomgroup = voxels.get_label(1)
             workflow.append(transformations.unwrap(edge_atomgroup)) 
         u.trajectory.add_transformations(*workflow) 
         combined_atomgroup = atomgroups[0]
