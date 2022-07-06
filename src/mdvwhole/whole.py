@@ -348,9 +348,15 @@ class Bridges:
     
 class Whole():
     def __init__(self, atomgroup, resolution=1, hyperres=False, 
-                 neighbor_mask=np.ones((3,3,3))):
-        self.voxels = Voxels(atomgroup, resolution, hyperres)
-        self.voxels.label(neighbor_mask=neighbor_mask)
+                 neighbor_mask=np.ones((3,3,3)), clusters=False):
+        self.clusters = clusters
+        if self.clusters is False:
+            self.voxels = Voxels(atomgroup, resolution, hyperres)
+            self.voxels.label(neighbor_mask=neighbor_mask)
+        else:
+            print('Using clustering input for labeling.')
+            
+            
         self.bridges = Bridges(self.voxels.labels, self.voxels.nbox)
         self._find_biggest_labels()
         self._find_all_paths()
@@ -463,22 +469,31 @@ class MDAWhole():
     as a just in time transformation or to make the complete
     trajectory whole and write the output.
     """
-    def __init__(self, atomgroups, resolution=1):
+    def __init__(self, atomgroups, resolution=1, clusters=False):
         """
         Sets the atomgroup.
         """
         self.atomgroups = atomgroups
         self.resolution = resolution
+        self.clusters = clusters
+        self.universe = atomgroups[0].universe
     def __call__(self, ts):
         """
         Used in the MDA transformations logic for making a frame
         whole just in time.
         """
+        if str(type(self.clusters)) == "<class 'numpy.ndarray'>":
+            self.atomgroups = []
+            # Add the cluster atomgroups to the atomgroups
+            labels = np.unique(self.clusters[self.universe.trajectory.frame])
+            for label in labels:
+                current_atomgroup = self.universe.atoms[self.clusters[self.universe.trajectory.frame] == label]
+                self.atomgroups.append(current_atomgroup)
         for atomgroup in self.atomgroups:
             Whole(atomgroup, resolution=self.resolution)
         return ts
     @classmethod
-    def whole_traj(cls, atomgroups, resolution=1, out='test.xtc', write_all=False, mol_whole=False):
+    def whole_traj(cls, atomgroups, resolution=1, out='test.xtc', write_all=False, mol_whole=False, clusters=False):
         """
         Makes every frame whole, writes the xtc and returns the 
         whole atomgroup.
@@ -486,7 +501,7 @@ class MDAWhole():
         u = atomgroups[0].universe
         total_frames = len(u.trajectory)
         start_time = time()
-        workflow = [MDAWhole(atomgroups, resolution)]
+        workflow = [MDAWhole(atomgroups, resolution, clusters)]
         if mol_whole:
             # Making it faster by just taking the edge particles (1nm res)
             #TODO THIS CAN BE EVEN FASTER BY ONLY CONSIDERING THE PBC SEGMENTS
@@ -572,6 +587,10 @@ def read_arguments():
         help='make molecules whole over pbc, this requires a tpr (default=False)'
         )
     optional_grp.add_argument(
+        '-clus', '--clusters', nargs='?', default=False, type=str,
+        help='use cluster assignment in clusters.npy from mdvvoxelsegmentation (default=Flase)'
+        )
+    optional_grp.add_argument(
     '-h', '--help', action="help",
     help='show this help message and exit',
     )
@@ -616,15 +635,25 @@ def main():
         u = mda.Universe(args.reference, in_memory=False)    
     else:
         u = mda.Universe(args.reference, args.trajectory, in_memory=False)
-    atomgroups = []
-    for selection in selections:
-        atomgroups.append(u.select_atoms(selection))
+    if args.clusters:
+        clusters = np.load(args.clusters)
+    else:
+        clusters = False
+    # Setting the initial selection
+    if args.clusters:
+        print('Using all atoms.')
+        atomgroups = [u.atoms]
+    else:
+        atomgroups = []
+        for selection in selections:
+            atomgroups.append(u.select_atoms(selection))
     # Make the complete trajectory whole and write it.
     MDAWhole.whole_traj(atomgroups, 
                         out=args.out_file, 
                         resolution=args.resolution,
                         write_all=args.write_all,
-                        mol_whole=args.mol_whole)
+                        mol_whole=args.mol_whole,
+                        clusters=clusters)
 
 
 if __name__ == "__main__":
