@@ -71,6 +71,4 @@ Using an mdvoxelsegmentation 'clusters.npy' to make whole (can also be used with
 
 `mdvwhole -f your_tpr.tpr -x your_xtc -o whole.xtc -wa True -mol True -clus your_clusters.npy`
 
-<p align="center">
-<iframe width="456" height="811" src="https://www.youtube.com/embed/UHyJnBZY9Tk" title="phase transition whole" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-</p>
+[![YOUTUBE LINK](https://img.youtube.com/vi/F5wXmDtQPHw/0.jpg)](https://youtu.be/F5wXmDtQPHw)]
