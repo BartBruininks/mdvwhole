@@ -71,6 +71,4 @@ Using an mdvoxelsegmentation 'clusters.npy' to make whole (can also be used with
 
 `mdvwhole -f your_tpr.tpr -x your_xtc -o whole.xtc -wa True -mol True -clus your_clusters.npy`
 
-
-https://user-images.githubusercontent.com/1488903/177653579-1020edeb-0fe9-453e-af14-1f5f916f52e8.mp4
-
+https://user-images.githubusercontent.com/1488903/177659765-98287099-5619-4e45-b890-1de573437347.mp4
