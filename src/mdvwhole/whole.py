@@ -505,7 +505,9 @@ class MDAWhole():
         total_frames = len(u.trajectory)
         start_time = time()
         workflow = [MDAWhole(atomgroups, resolution, clusters)]
-        #if mol_whole:
+        # Make molecules whole in advances if association is not turend on
+        if mol_whole and not associative:
+            print('We are here!!!!')
             # Making it faster by just taking the edge particles (1nm res)
             #TODO THIS CAN BE EVEN FASTER BY ONLY CONSIDERING THE PBC SEGMENTS
             # THE NON PBC SEGMENTS ARE ALREADY WHOLE!!! THIS WOULD REDUCE THE
@@ -518,7 +520,7 @@ class MDAWhole():
             #voxels.grid[edge_voxel_mask != voxels.grid] = 0 
             #edge_atomgroup = voxels.get_label(1).residues.atoms
             #workflow.append(transformations.unwrap(edge_atomgroup))
-            #workflow.append(transformations.unwrap(u.atoms))
+            workflow.append(transformations.unwrap(u.atoms))
         u.trajectory.add_transformations(*workflow) 
         combined_atomgroup = atomgroups[0]
         for atomgroup in atomgroups[1:]:
@@ -540,23 +542,22 @@ class MDAWhole():
                     time_left /= 3600
                     print(f'\rFrame {current_frame_id}/{total_frames} {time_left:.2f} hours remaining.     ', end='')
                 # Making molecules whole and allows for associatite clustering
-                if mol_whole:
-                    if associative:
-                        active_indices = combined_atomgroup.ix
-                        original = u.atoms.positions.copy()
+                if associative:
+                    active_indices = combined_atomgroup.ix
+                    original = u.atoms.positions.copy()
                     u.atoms.unwrap(compound='fragments', reference='cog')
-                    if associative:
-                        distances = original - u.atoms.positions 
-                        tolerance = np.array((0.00001, 0.00001, 0.00001))
-                        for residue in u.residues:
-                            shift = np.zeros(3)
-                            for atom in residue.atoms:
-                                if atom.ix not in active_indices:
-                                    continue
-                                if np.any(np.absolute(distances[atom.ix]) >= tolerance ):
-                                    shift = distances[atom.ix]
-                                    break
-                            residue.atoms.positions += shift
+                if associative:
+                    distances = original - u.atoms.positions 
+                    tolerance = np.array((0.00001, 0.00001, 0.00001))
+                    for residue in u.residues:
+                        shift = np.zeros(3)
+                        for atom in residue.atoms:
+                            if atom.ix not in active_indices:
+                                continue
+                            if np.any(np.absolute(distances[atom.ix]) >= tolerance ):
+                                shift = distances[atom.ix]
+                                break
+                        residue.atoms.positions += shift
                 # Doing the actual calculation
                 if write_all:
                     W.write(u.atoms)
