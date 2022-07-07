@@ -507,7 +507,6 @@ class MDAWhole():
         workflow = [MDAWhole(atomgroups, resolution, clusters)]
         # Make molecules whole in advances if association is not turend on
         if mol_whole and not associative:
-            print('We are here!!!!')
             # Making it faster by just taking the edge particles (1nm res)
             #TODO THIS CAN BE EVEN FASTER BY ONLY CONSIDERING THE PBC SEGMENTS
             # THE NON PBC SEGMENTS ARE ALREADY WHOLE!!! THIS WOULD REDUCE THE
