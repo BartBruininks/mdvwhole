@@ -469,13 +469,14 @@ class MDAWhole():
     as a just in time transformation or to make the complete
     trajectory whole and write the output.
     """
-    def __init__(self, atomgroups, resolution=1, clusters=False):
+    def __init__(self, atomgroups, resolution=1, clusters=False, associative=False):
         """
         Sets the atomgroup.
         """
         self.atomgroups = atomgroups
         self.resolution = resolution
         self.clusters = clusters
+        self.associative = associative
         self.universe = atomgroups[0].universe
     
     def __call__(self, ts):
@@ -495,7 +496,7 @@ class MDAWhole():
         return ts
     
     @classmethod
-    def whole_traj(cls, atomgroups, resolution=1, out='test.xtc', write_all=False, mol_whole=False, clusters=False):
+    def whole_traj(cls, atomgroups, resolution=1, out='test.xtc', write_all=False, mol_whole=False, clusters=False, associative=False):
         """
         Makes every frame whole, writes the xtc and returns the 
         whole atomgroup.
@@ -540,24 +541,22 @@ class MDAWhole():
                     print(f'\rFrame {current_frame_id}/{total_frames} {time_left:.2f} hours remaining.     ', end='')
                 # Making molecules whole and allows for associatite clustering
                 if mol_whole:
-                    active_indices = combined_atomgroup.ix
-                    original = u.atoms.positions.copy()
+                    if associative:
+                        active_indices = combined_atomgroup.ix
+                        original = u.atoms.positions.copy()
                     u.atoms.unwrap(compound='fragments')
-                    distances = original - u.atoms.positions 
-                    tolerance = np.array((0.00001, 0.00001, 0.00001))
-                    for residue in u.residues:
-                        shift = np.zeros(3)
-                        for atom in residue.atoms:
-                            if atom.ix not in active_indices:
-                                continue
-                            if np.any(np.absolute(distances[atom.ix]) >= tolerance ):
-                                #print(f'HIT! RES{residue.ix}')
-                                #print(distances[atom.ix])
-                                shift = distances[atom.ix]
-                                break
-                        #else:
-                            #print(f'OK! RES{residue.ix}')
-                        residue.atoms.positions += shift
+                    if associative:
+                        distances = original - u.atoms.positions 
+                        tolerance = np.array((0.00001, 0.00001, 0.00001))
+                        for residue in u.residues:
+                            shift = np.zeros(3)
+                            for atom in residue.atoms:
+                                if atom.ix not in active_indices:
+                                    continue
+                                if np.any(np.absolute(distances[atom.ix]) >= tolerance ):
+                                    shift = distances[atom.ix]
+                                    break
+                            residue.atoms.positions += shift
                 # Doing the actual calculation
                 if write_all:
                     W.write(u.atoms)
@@ -610,6 +609,10 @@ def read_arguments():
         help='make molecules whole over pbc, this requires a tpr (default=False)'
         )
     optional_grp.add_argument(
+        '-asso', '--associative', nargs='?', default=False, type=str,
+        help='make molecules whole over pbc, with only a subselection of molecules provided (default=False)'
+        )
+    optional_grp.add_argument(
         '-clus', '--clusters', nargs='?', default=False, type=str,
         help='use cluster assignment in clusters.npy from mdvvoxelsegmentation (default=Flase)'
         )
@@ -642,6 +645,12 @@ def read_arguments():
         args.mol_whole = True
     else:
         raise ValueError('The -mol input should be either True or False.')
+    if args.associative == "False":
+        args.associative = False
+    elif args.associative == "True":
+        args.associative = True
+    else:
+        raise ValueError('The -asso input should be either True or False.')
     return args
     
 
@@ -653,6 +662,7 @@ def main():
     selections = args.selections.split(';')
     print(selections)
     print(args)
+    
     # Loading trajectory.
     if args.reference == args.trajectory:
         u = mda.Universe(args.reference, in_memory=False)    
@@ -676,7 +686,8 @@ def main():
                         resolution=args.resolution,
                         write_all=args.write_all,
                         mol_whole=args.mol_whole,
-                        clusters=clusters)
+                        clusters=clusters,
+                        associative=args.associative)
 
 
 if __name__ == "__main__":
