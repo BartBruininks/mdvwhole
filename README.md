@@ -6,7 +6,7 @@ completion is very light on memory and can cover an arbitrary amount of consecut
 the voxel resolution (26 neighbors).
 
 # Version
-0.0.7 This version is safe to use for production. 
+0.0.7.1 This version is safe to use for production. 
 
 ![alt text](https://user-images.githubusercontent.com/1488903/151573692-58d1eb6c-b6a2-444e-a7b8-937fa8ebc448.png)
 
