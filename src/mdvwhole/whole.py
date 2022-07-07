@@ -544,7 +544,7 @@ class MDAWhole():
                     if associative:
                         active_indices = combined_atomgroup.ix
                         original = u.atoms.positions.copy()
-                    u.atoms.unwrap(compound='fragments')
+                    u.atoms.unwrap(compound='fragments', reference='cog')
                     if associative:
                         distances = original - u.atoms.positions 
                         tolerance = np.array((0.00001, 0.00001, 0.00001))
