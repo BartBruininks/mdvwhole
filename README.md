@@ -49,26 +49,26 @@ Making a single gro whole and also complete single molecules:
 
 Making a trajectory whole:
 
-`mdvwhole -f your_gro.gro -x your_xtc -o whole.xtc`
+`mdvwhole -f your_gro.gro -x your_xtc.xtc -o whole.xtc`
 
 Making a trajectory whole and also complete single molecules:
 
-`mdvwhole -f your_tpr.tpr -x your_xtc -mol True -o whole.xtc`
+`mdvwhole -f your_tpr.tpr -x your_xtc.xtc -mol True -o whole.xtc`
 
 Using a non-default selection:
 
-`mdvwhole -f your_gro.gro -x your_xtc -o whole.xtc -sel 'not resname W WF ION and not name PO4'`
+`mdvwhole -f your_gro.gro -x your_xtc.xtc -o whole.xtc -sel 'not resname W WF ION and not name PO4'`
 
 Using multiple selections to make whole:
 
-`mdvwhole -f your_gro.gro -x your_xtc -o whole.xtc -sel 'resname POPC; not resname W WF ION POPC'`
+`mdvwhole -f your_gro.gro -x your_xtc.xtc -o whole.xtc -sel 'resname POPC; not resname W WF ION POPC'`
 
 Writing all atoms even if they were not included in a selection:
 
-`mdvwhole -f your_gro.gro -x your_xtc -o whole.xtc -sel 'not resname W WF ION' -wa True`
+`mdvwhole -f your_gro.gro -x your_xtc.xtc -o whole.xtc -sel 'not resname W WF ION' -wa True`
 
 Using an mdvoxelsegmentation 'clusters.npy' to make whole (can also be used without whole molecules and on a single gro).
 
-`mdvwhole -f your_tpr.tpr -x your_xtc -o whole.xtc -wa True -mol True -clus your_clusters.npy`
+`mdvwhole -f your_tpr.tpr -x your_xtc.xtc -o whole.xtc -wa True -mol True -clus your_clusters.npy`
 
 https://user-images.githubusercontent.com/1488903/177659765-98287099-5619-4e45-b890-1de573437347.mp4
