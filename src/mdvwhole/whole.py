@@ -645,7 +645,9 @@ def read_arguments():
         args.mol_whole = True
     else:
         raise ValueError('The -mol input should be either True or False.')
-    if args.associative == "False":
+    if args.associative == False:
+        pass
+    elif args.associative == "False":
         args.associative = False
     elif args.associative == "True":
         args.associative = True
