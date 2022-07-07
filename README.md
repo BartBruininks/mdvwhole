@@ -34,6 +34,10 @@ Make sure you are installing for python 3.8 or newer.
 
 `pip install mdvwhole`
 
+Or clone this repository for the latest beta features and install using pip from inside the cloned folder.
+
+`pip install -e .`
+
 ## Usage
 Print help:
 
