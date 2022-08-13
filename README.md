@@ -83,3 +83,6 @@ Using associative mdvwhole, a subselection of a molecules can be used for the se
 
 https://user-images.githubusercontent.com/1488903/177778628-ca61c694-fdd6-45f0-af78-644d63db9fe8.mp4
 
+# Sneak peak at new feature, the aggregate shaped tile
+
+https://user-images.githubusercontent.com/1488903/184494090-cb0eba59-75d0-447c-bd7d-96b2da047ab7.mp4
