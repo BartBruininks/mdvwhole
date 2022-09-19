@@ -7,8 +7,12 @@ import numpy as np
 import mdvoxelsegmentation as mdvseg
 import MDAnalysis as mda
 import networkx as nx
+import freud
 from time import time
 from MDAnalysis import transformations
+
+# Prevent freud form using more than 1 thread.
+freud.set_num_threads(1)
 
 
 # Visualization
@@ -32,6 +36,98 @@ def dim2lattice(x, y, z, alpha=90, beta=90, gamma=90):
 
     return np.array([x, 0, 0, y * cosg, y * sing, 0, zx, zy, zz]).reshape((3,3))
 
+def min_dist_indexes(ids, values, sort_values=True):
+    """
+    Returns an array with the index of the minimum position per molecule, as well as
+    the sizes of the molecules in order if sorting is turned on.
+    """
+    if sort_values:
+        argidx = np.argsort(ids) #70% time
+        ids, values = ids[argidx], values[argidx] #4% time
+    unique_ids = len(np.unique(ids)) + 1
+    div_points = np.empty(unique_ids, dtype='int32')
+    div_points[:-1] = np.r_[0, np.flatnonzero(np.diff(ids)) + 1]
+    div_points[-1] = len(ids)
+    start = 0
+    stop = 1
+    minimum_positions = np.empty(div_points.shape[0] - 1, dtype='int32')
+    while stop < len(div_points):
+        minimum_positions[start] = np.argmin(values[div_points[start]:div_points[stop]]) + div_points[start]
+        start += 1
+        stop += 1
+    return minimum_positions, np.diff(div_points), argidx
+
+def find_biggest_label(labels, non_zero=True):
+    """
+    Returns the integer of the biggest label.
+    """
+    # Finding the biggest label which is non-zero
+    unique_labels = dict(zip(*np.unique(labels, return_counts=True)))
+    if non_zero:
+        try:
+            unique_labels.pop(0) # remove the zero label
+        except KeyError:
+            pass
+    # An early out if we have only one label.
+    biggest_label = max(unique_labels, key=unique_labels.get)
+    return biggest_label
+
+def gen_molecular_box(query_atomgroup, target_atomgroup, labels=None, sorting=False, out_name=None):
+    """
+    Returns the univerese with the final query positions at minimum distance from the target. Labels
+    which are whole, remain whole. A TPR or an alternative bonds containing file is required to use
+    the fragments in MDA for automated molecular labeling.
+    
+    Labels should be an array of size len(atoms) and a single integer to specify the label of the atom.
+    """
+    universe = query_atomgroup.universe
+    # Raw positions can lie out of the box
+    if labels is None:
+        try:
+            labels = universe.atoms.fragindices # This should become only query atoms?
+        except AttributeError:
+            labels = np.arange(len(universe.atoms)) # This should become only query atoms?
+    raw_positions = np.copy(universe.atoms.positions)
+    # The target selection by definition cannot change place
+    final_positions = np.empty(raw_positions.shape)
+    final_positions[target_atomgroup.ix] = raw_positions[target_atomgroup.ix]
+    #box_size = query_atomgroup.universe.dimensions[:3] # This needs to change for generic PBC
+    box = dim2lattice(*query_atomgroup.universe.dimensions)
+    # Defining the coordinate arrays
+    query = query_atomgroup.positions
+    target = target_atomgroup.positions
+    # Instantiating the search structure
+    aq = freud.AABBQuery(box.T, target)
+    # Perform the neighbor search
+    results = aq.query(query, {"num_neighbors": 1})
+    # Writing the results into arrays
+    results = np.array(list(results), dtype='float32')[:,:3] # is the slice needed?
+    query_ids, target_ids = results[:,0].astype('int32'), results[:,1].astype('int32')
+    # Finding the index with smallest distance per molecule labels only matter for query atoms?
+    minimum_dist_indexes, div_points, argidx = min_dist_indexes(labels[query_atomgroup[query_ids].ix], results[:,2]) 
+    # This works in all PBC!
+    inv_box = np.linalg.inv(box)
+    # Define points using the sorted minimum distance values per label
+    query_q = query_atomgroup[query_ids][argidx][minimum_dist_indexes].positions
+    target_q = target_atomgroup[target_ids][argidx][minimum_dist_indexes].positions
+    #query_q = query_sorted[minimum_dist_indexes]
+    #target_q = target_sorted[minimum_dist_indexes]
+    # Bring to unity
+    u_query = query_q @ inv_box
+    u_target = target_q @ inv_box
+    # Find the box displacement
+    u_linker_distances = np.round(u_query - u_target)
+    linker_distances = u_linker_distances @ box
+    # Expand linker distances for all molecules
+    linker_distances = np.repeat(linker_distances, div_points, axis=0)
+    # Changing the position of the solvent in the output
+    # We use the argidx to unsort the final linker distances
+    inv_argidx = np.argsort(argidx)
+    final_positions[query_atomgroup[query_ids].ix] = query_atomgroup[query_ids].positions - linker_distances[inv_argidx]
+    universe.atoms.positions = final_positions
+    if out_name is not None:
+        universe.atoms.write(out_name)
+    return universe
 
 # =============================================================================
 # def make_pcd(atomgroup, color=np.random.random()):
@@ -469,7 +565,7 @@ class MDAWhole():
     as a just in time transformation or to make the complete
     trajectory whole and write the output.
     """
-    def __init__(self, atomgroups, resolution=1, clusters=False, associative=False):
+    def __init__(self, atomgroups, resolution=1, clusters=False, associative=False, focus='biggest', compact=False):
         """
         Sets the atomgroup.
         """
@@ -477,6 +573,8 @@ class MDAWhole():
         self.resolution = resolution
         self.clusters = clusters
         self.associative = associative
+        self.focus = focus
+        self.compact = compact
         self.universe = atomgroups[0].universe
     
     def __call__(self, ts):
@@ -496,7 +594,16 @@ class MDAWhole():
         return ts
     
     @classmethod
-    def whole_traj(cls, atomgroups, resolution=1, out='test.xtc', write_all=False, mol_whole=False, clusters=False, associative=False):
+    def whole_traj(cls, 
+                   atomgroups, 
+                   resolution=1, 
+                   out='test.xtc', 
+                   write_all=False, 
+                   mol_whole=False, 
+                   clusters=False, 
+                   associative=False, 
+                   focus='biggest', 
+                   compact=True):
         """
         Makes every frame whole, writes the xtc and returns the 
         whole atomgroup.
@@ -504,7 +611,7 @@ class MDAWhole():
         u = atomgroups[0].universe
         total_frames = len(u.trajectory)
         start_time = time()
-        workflow = [MDAWhole(atomgroups, resolution, clusters)]
+        workflow = [MDAWhole(atomgroups, resolution, clusters, focus, compact)]
         # Make molecules whole in advances if association is not turend on
         if mol_whole and not associative:
             # Making it faster by just taking the edge particles (1nm res)
@@ -531,15 +638,8 @@ class MDAWhole():
                 frame_time = time()
                 projected_total_time = ((total_frames/(current_frame_id+0.0001))) * (frame_time-start_time)
                 time_left = (1 - current_frame_id/total_frames) * projected_total_time
-                # Some time left printing logic (seconds, minutes, hours)
-                if time_left <= 60:
-                    print(f'\rFrame {current_frame_id}/{total_frames} {time_left:.2f} seconds remaining.     ', end='')
-                elif time_left < 3600:
-                    time_left /= 60
-                    print(f'\rFrame {current_frame_id}/{total_frames} {time_left:.2f} minutes remaining.     ', end='')
-                else:
-                    time_left /= 3600
-                    print(f'\rFrame {current_frame_id}/{total_frames} {time_left:.2f} hours remaining.     ', end='')
+                # TODO!!!
+                ### I think it would be much neater if this was part of the transformation...
                 # Making molecules whole and allows for associatite clustering
                 if associative:
                     active_indices = combined_atomgroup.ix
@@ -557,11 +657,43 @@ class MDAWhole():
                                 shift = distances[atom.ix]
                                 break
                         residue.atoms.positions += shift
+                # setting all the labels, what about label 0 the solvent?
+                if focus or compact:
+                    if clusters is False:
+                        all_labels = np.zeros(len(u.atoms))
+                        for idx, atomgroup in enumerate(atomgroups):
+                            all_labels[atomgroup.ix] = idx+1
+                    else:
+                        all_labels = clusters[u.trajectory.frame]
+                if focus is not False:
+                    if focus == 'biggest':
+                        target_label = find_biggest_label(all_labels, non_zero=True)
+                        query_atomgroup = u.atoms[all_labels != target_label]
+                        target_atomgroup = u.atoms[all_labels == target_label]
+                        u.atoms.positions = gen_molecular_box(query_atomgroup, target_atomgroup, labels=all_labels).atoms.positions
+                    else:
+                        target_label = focus
+                        query_atomgroup = u.atoms[all_labels != target_label]
+                        target_atomgroup = u.atoms[all_labels == target_label] 
+                        u.atoms.positions = gen_molecular_box(query_atomgroup, target_atomgroup, labels=all_labels).atoms.positions
+                if compact:
+                    query_atomgroup = u.atoms[all_labels == 0]
+                    target_atomgroup = u.atoms[all_labels != 0]
+                    u.atoms.positions = gen_molecular_box(query_atomgroup, target_atomgroup, labels=None).atoms.positions
                 # Doing the actual calculation
                 if write_all:
                     W.write(u.atoms)
                 else:
                     W.write(combined_atomgroup)
+                # Some time left printing logic (seconds, minutes, hours)
+                if time_left <= 60:
+                    print(f'\rFrame {current_frame_id}/{total_frames} {time_left:.2f} seconds remaining.     ', end='')
+                elif time_left < 3600:
+                    time_left /= 60
+                    print(f'\rFrame {current_frame_id}/{total_frames} {time_left:.2f} minutes remaining.     ', end='')
+                else:
+                    time_left /= 3600
+                    print(f'\rFrame {current_frame_id}/{total_frames} {time_left:.2f} hours remaining.     ', end='')
         print(f'\rDone, the whole thing took {(time()-start_time)/60:.2f} minutes.              ')
         return combined_atomgroup
 
@@ -617,6 +749,14 @@ def read_arguments():
         help='use cluster assignment in clusters.npy from mdvvoxelsegmentation (default=Flase)'
         )
     optional_grp.add_argument(
+        '-focus', '--focus', nargs='?', default='biggest', type=str,
+        help='center the segments around a target segment (default=biggest). Can be turned off with False. '
+        )
+    optional_grp.add_argument(
+        '-comp', '--compact', nargs='?', default='False', type=str,
+        help='places all non-selected density at minimum distance (default=False).'
+        )
+    optional_grp.add_argument(
     '-h', '--help', action="help",
     help='show this help message and exit',
     )
@@ -653,6 +793,19 @@ def read_arguments():
         args.associative = True
     else:
         raise ValueError('The -asso input should be either True or False.')
+    if args.focus != "biggest":
+        if args.focus == "False":
+            args.focus = False
+        else:
+            args.focus = int(args.focus)
+    if args.compact == False:
+        pass
+    elif args.compact == "False":
+        args.compact = False
+    elif args.compact == "True":
+        args.compact = True
+    else:
+        raise ValueError('The -comp input should be either True or False.')
     return args
     
 
@@ -689,7 +842,9 @@ def main():
                         write_all=args.write_all,
                         mol_whole=args.mol_whole,
                         clusters=clusters,
-                        associative=args.associative)
+                        associative=args.associative,
+                        focus=args.focus,
+                        compact=args.compact)
 
 
 if __name__ == "__main__":
