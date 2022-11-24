@@ -77,9 +77,9 @@ Using an mdvoxelsegmentation 'clusters.npy' to make whole (can also be used with
 
 https://user-images.githubusercontent.com/1488903/177659765-98287099-5619-4e45-b890-1de573437347.mp4
 
-Using associative mdvwhole, a subselection of a molecules can be used for the selection. The displacement of the subselection is projected on the whole molecules:
+Using associative mdvwhole, a subselection of a molecules can be used for the selection. The displacement of the subselection is projected on the whole molecules. A negative sign in front of the resolution allos for large deviations from the set resolution if required. Otherwise a maximum deviation of 5% is tolerated:
 
-`mdvwhole -f your_tpr.tpr -x your_xtc.xtc -o whole.xtc -sel 'name C3A C3B D3A D3B C4A C4B D4A D4B' -res 0.7 -wa True -mol True -asso True`
+`mdvwhole -f your_tpr.tpr -x your_xtc.xtc -o whole.xtc -sel 'name C3A C3B D3A D3B C4A C4B D4A D4B' -res -0.7 -wa True -mol True -asso True`
 
 https://user-images.githubusercontent.com/1488903/177778628-ca61c694-fdd6-45f0-af78-644d63db9fe8.mp4
 
