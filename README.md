@@ -83,6 +83,10 @@ Using associative mdvwhole, a subselection of a molecules can be used for the se
 
 https://user-images.githubusercontent.com/1488903/177778628-ca61c694-fdd6-45f0-af78-644d63db9fe8.mp4
 
+If an object starts to get self contact over the PBC (end of the video) it can no longer be completed with MDVWhole. We see this as a feature, for such unwanted contacts are most often a strong indication that the box used should be bigger.
+
+https://user-images.githubusercontent.com/1488903/203772841-8f70100a-51f0-418a-8e2c-c4aa86ed1284.mp4
+
 # Sneak peak at new feature, the aggregate shaped tile
 
 https://user-images.githubusercontent.com/1488903/184648757-35735f05-bc7f-483e-b789-a74b834a1b6b.mp4
