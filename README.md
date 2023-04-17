@@ -11,21 +11,11 @@ the voxel resolution (26 neighbors).
 ![alt text](https://user-images.githubusercontent.com/1488903/151573692-58d1eb6c-b6a2-444e-a7b8-937fa8ebc448.png)
 
 ## How to cite
-For now it is best to cite the original MDVoxelSegmentation [article](https://pubs.acs.org/doi/abs/10.1021/acs.jctc.1c00446) with the note that you used the new beta 'Whole' feature.
+For now it is best to cite the DOI. The manuscript has been accepted in JCIM and the full bibtex entry will soon be available.
 
 ```
-@article{Bruininks2021,
-  doi = {10.1021/acs.jctc.1c00446},
-  url = {https://doi.org/10.1021/acs.jctc.1c00446},
-  year = {2021},
-  month = oct,
-  publisher = {American Chemical Society ({ACS})},
-  volume = {17},
-  number = {12},
-  pages = {7873--7885},
-  author = {Bart M. H. Bruininks and Albert S. Thie and Paulo C. T. Souza and Tsjerk A. Wassenaar and Shirin Faraji and Siewert J. Marrink},
-  title = {Sequential Voxel-Based Leaflet Segmentation of Complex Lipid Morphologies},
-  journal = {Journal of Chemical Theory and Computation}
+@article{Bruininks2023,
+  doi = {10.1021/acs.jcim.2c01574},
 }
 ```
 
