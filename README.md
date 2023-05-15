@@ -1,9 +1,9 @@
 # mdvwhole
-Density based object completion over all PBC. This repository will eventually be merged with [MDVoxelSegmentation](https://github.com/marrink-lab/MDVoxelSegmentation).
+Density based object completion over all PBC, the [manuscript](https://doi.org/10.1021/acs.jcim.2c01574) is published in JCIM.
 
 No copies of the box are made to complete the PBC, instead we use a graph based approach. Therefore object
 completion is very light on memory and can cover an arbitrary amount of consecutive PBC crossings. The contact distance is based on
-the voxel resolution (26 neighbors).
+the voxel resolution (26 neighbors). This repository is closely related to [MDVoxelSegmentation](https://github.com/marrink-lab/MDVoxelSegmentation) and in the future I hope to moerge them.
 
 # Version
 0.0.7.1 This version is safe to use for production. 
@@ -11,11 +11,16 @@ the voxel resolution (26 neighbors).
 ![alt text](https://user-images.githubusercontent.com/1488903/151573692-58d1eb6c-b6a2-444e-a7b8-937fa8ebc448.png)
 
 ## How to cite
-For now it is best to cite the DOI. The manuscript has been accepted in JCIM and the full bibtex entry will soon be available.
-
 ```
 @article{Bruininks2023,
   doi = {10.1021/acs.jcim.2c01574},
+  url = {https://doi.org/10.1021/acs.jcim.2c01574},
+  year = {2023},
+  month = may,
+  publisher = {American Chemical Society ({ACS})},
+  author = {Bart M. H. Bruininks and Tsjerk A. Wassenaar and Ilpo Vattulainen},
+  title = {Unbreaking Assemblies in Molecular Simulations with Periodic Boundaries},
+  journal = {Journal of Chemical Information and Modeling}
 }
 ```
 
