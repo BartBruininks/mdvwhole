@@ -3,7 +3,7 @@ Density based object completion over all PBC, the [manuscript](https://doi.org/1
 
 No copies of the box are made to complete the PBC, instead we use a graph based approach. Therefore object
 completion is very light on memory and can cover an arbitrary amount of consecutive PBC crossings. The contact distance is based on
-the voxel resolution (26 neighbors). This repository is closely related to [MDVoxelSegmentation](https://github.com/marrink-lab/MDVoxelSegmentation) and in the future I hope to moerge them.
+the voxel resolution (26 neighbors). This repository is closely related to [MDVoxelSegmentation](https://github.com/marrink-lab/MDVoxelSegmentation) and in the future I hope to merge them.
 
 # Version
 0.0.7.1 This version is safe to use for production. 
