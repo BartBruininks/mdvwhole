@@ -1,5 +1,5 @@
 # WARNING
-We found a functionality breaking bug for small molecules corssing boundaries. We are looking into this. For now, use MDVWhole with care, if it works for you, good. But we know the output is wrong in some cases. We will fix this ASAP and apologize for any inconvenience this might have brought onour users.
+We found a functionality breaking bug for small molecules corssing boundaries. We are looking into this. For now, use MDVWhole with care, if it works for you, good. But we know the output is wrong in some cases. We will fix this ASAP and apologize for any inconvenience this might have brought on our users.
 
 # mdvwhole
 Density based object completion over all PBC, the [manuscript](https://doi.org/10.1021/acs.jcim.2c01574) is published in JCIM.
