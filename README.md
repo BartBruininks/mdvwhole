@@ -45,9 +45,9 @@ Making a single gro whole:
 
 `mdvwhole -f your_gro.gro`
 
-Using a custom resolution (setting the resolution to 2 nm and ignore the voxel scaling artifact warning by using a minus sign in fron the the resolution):
+Using a custom resolution (setting the resolution to 0.8 nm and ignore the voxel scaling artifact warning by using a minus sign in fron the the resolution):
 
-`mdvwhole -f your_gro.gro -x your_xtc.xtc -res 2`
+`mdvwhole -f your_gro.gro -x your_xtc.xtc -res -0.8`
 
 Making a single gro whole and also complete single molecules:
 
