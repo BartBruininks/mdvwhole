@@ -30,7 +30,7 @@ the voxel resolution (26 neighbors). This repository is closely related to [MDVo
 ## Install
 Make sure you are installing for python 3.8 or newer.
 
-`pip install mdvwhole`
+`pip install git+https://github.com/BartBruininks/mdvwhole`
 
 Or clone this repository for the latest beta features and install using pip from inside the cloned folder.
 
@@ -47,7 +47,7 @@ Making a single gro whole:
 
 Using a custom resolution (setting the resolution to 0.8 nm and ignore the voxel scaling artifact warning by using a minus sign in fron the the resolution):
 
-`mdvwhole -f your_gro.gro -x your_xtc.xtc -res -0.8`
+`mdvwhole -f your_gro.gro -x your_xtc.xtc -res -0.4` # 0.4 a lower value than this leads to gaps for CG Martini models
 
 Making a single gro whole and also complete single molecules:
 
