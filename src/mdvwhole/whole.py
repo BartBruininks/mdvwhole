@@ -9,6 +9,7 @@ import MDAnalysis as mda
 import networkx as nx
 from time import time
 from MDAnalysis import transformations
+from os.path import splitext
 
 
 # Visualization
@@ -597,7 +598,7 @@ def read_arguments():
         help='the binning resolution in the same units as the reference file (default=1 nm)',
         )
     optional_grp.add_argument(
-        '-o', '--out_file', nargs='?', default='whole.xtc', type=str,
+        '-o', '--out_file', nargs='?', default=None, type=str,
         help='the path for writing the whole (e.g. XTC, GRO) (default=whole.xtc)',
         )
     optional_grp.add_argument(
@@ -617,17 +618,21 @@ def read_arguments():
         help='use cluster assignment in clusters.npy from mdvvoxelsegmentation (default=Flase)'
         )
     optional_grp.add_argument(
-    '-h', '--help', action="help",
-    help='show this help message and exit',
+        '-h', '--help', action="help",
+        help='show this help message and exit',
     )
     # parse the arguments into the name space
     args = parser.parse_args()
-    
+
     # Set the trajectory to the gro if it is not specified.
-    if args.trajectory == None:
-        args.out_file = 'whole.gro'
+    if args.trajectory is None:
         args.trajectory = args.reference
-    
+
+    # default out file should match file type of reference
+    if args.out_file is None:
+        _, ext = splitext(args.trajectory)
+        args.out_file = "whole" + ext
+
     # Fixing the text input bools
     if args.write_all == False:
         pass
